@@ -1,18 +1,1085 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#080810" />
-    <meta name="description" content="TalkReal - Apprends l'anglais américain avec Prof Sam" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <title>TalkReal</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #f7f7fa; font-family: -apple-system, 'Segoe UI', sans-serif; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TalkReal - Prof Sam</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:#f8fafc;min-height:100vh}
+#app{max-width:480px;margin:0 auto;min-height:100vh;position:relative}
+button{font-family:inherit;cursor:pointer;transition:opacity 0.15s}
+button:active{opacity:0.8}
+input{font-family:inherit}
+@keyframes pop{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounce{from{transform:scaleY(0.4)}to{transform:scaleY(1.7)}}
+@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const CODES = {
+  'TALKREAL2024':1,'BETA-VIP':1,'BETA-MARIE':1,'BETA-PAUL':1,
+  'BETA-SOFIA':1,'BETA-AHMED':1,'BETA-LUCAS':1,'BETA-SARAH':1,
+  'BETA-YANN':1,'BETA-AISHA':1,'BETA-KEVIN':1,'BETA-LINA':1
+};
+
+const LEVELS = [
+  {id:'zero',     label:'Niveau Zero',     desc:'Je ne connais aucun mot anglais',         color:'#94a3b8',speed:0.65,reps:3},
+  {id:'debutant', label:'Debutant',         desc:'Je connais quelques mots: hi, yes, no',   color:'#10b981',speed:0.75,reps:2},
+  {id:'scolaire', label:'Anglais Scolaire', desc:'Appris a ecole, pas accent americain',    color:'#3b82f6',speed:0.82,reps:2},
+  {id:'inter',    label:'Intermediaire',    desc:'Je comprends mais bloque a oral',         color:'#8b5cf6',speed:0.88,reps:1},
+  {id:'avance',   label:'Avance',           desc:'Je parle mais veux sonner americain',     color:'#f59e0b',speed:0.93,reps:1},
+  {id:'accent',   label:'Accent Parfait',   desc:'Je veux parler comme un natif',           color:'#ef4444',speed:0.98,reps:1},
+];
+
+const BADGES = [
+  {id:'first',  label:'Premiers Pas',  desc:'Terminer ta premiere lecon',  color:'#10b981', icon:'&#127881;'},
+  {id:'s3',     label:'En Feu',        desc:'3 jours consecutifs',         color:'#f97316', icon:'&#128293;'},
+  {id:'s7',     label:'Une Semaine',   desc:'7 jours consecutifs',         color:'#6366f1', icon:'&#128142;'},
+  {id:'xp100',  label:'Energique',     desc:'Atteindre 100 XP',            color:'#eab308', icon:'&#9889;'},
+  {id:'xp500',  label:'Champion',      desc:'Atteindre 500 XP',            color:'#f59e0b', icon:'&#127942;'},
+  {id:'xp1000', label:'Royaute',       desc:'Atteindre 1000 XP',           color:'#ec4899', icon:'&#128081;'},
+  {id:'l5',     label:'Studieux',      desc:'Completer 5 lecons',          color:'#3b82f6', icon:'&#128218;'},
+  {id:'l10',    label:'Mi-Parcours',   desc:'Completer 10 lecons',         color:'#8b5cf6', icon:'&#127891;'},
+  {id:'l20',    label:'Maitre',        desc:'Completer les 20 lecons',     color:'#ef4444', icon:'&#11088;'},
+  {id:'perf',   label:'Parfait',       desc:'100% a un quiz',              color:'#10b981', icon:'&#128175;'},
+];
+
+const FRIENDS = [
+  {n:'Kofi',xp:1250,s:12},{n:'Amina',xp:980,s:8},{n:'Thomas',xp:720,s:5},
+  {n:'Fatou',xp:540,s:3},{n:'Ibrahim',xp:380,s:6},{n:'Chloe',xp:210,s:2}
+];
+
+const CULTURE = [
+  {icon:'&#129363;',title:'Thanksgiving',    text:'Chaque 4e jeudi de novembre, les Americains mangent de la dinde en famille. Le plus grand repas de famille aux USA!'},
+  {icon:'&#127944;',title:'Super Bowl',      text:'Le Super Bowl est le match de football americain le plus regarde. Les pubs coutent 7 millions dollars pour 30 secondes!'},
+  {icon:'&#127828;',title:'Tip Culture',     text:'Aux USA, laisser 15 a 20% de pourboire est tres important. Ne pas laisser de tip est tres mal vu.'},
+  {icon:'&#9749;',  title:'Starbucks',       text:'Le prepose ecrit ton prenom sur le verre. Dis toujours ton prenom clairement! Les americains adorent Starbucks.'},
+  {icon:'&#128522;',title:'Small Talk',      text:'Les Americains font du small talk partout. Dans ascenseur, chez medecin, en file. Sourire et repondre est attendu!'},
+  {icon:'&#127875;',title:'Halloween',       text:'Le 31 octobre, des enfants deguises crient Trick or treat pour avoir des bonbons. Tres populaire aux USA!'},
+  {icon:'&#127925;',title:'Melting Pot',     text:'Les USA sont le melting pot. Une societe avec immigrants du monde entier. Chaque Americain a origines differentes.'},
+  {icon:'&#127891;',title:'College Life',    text:'Universite americaine = experience de vie. Etudiants habitent sur campus, font des frats, des sororities.'},
+];
+
+const XP_LVS = [
+  {n:'Zero',    min:0,   color:'#94a3b8'},
+  {n:'Touriste',min:100, color:'#10b981'},
+  {n:'Voyageur',min:300, color:'#3b82f6'},
+  {n:'Resident',min:700, color:'#8b5cf6'},
+  {n:'Local',   min:1300,color:'#f59e0b'},
+  {n:'Americain',min:2000,color:'#ef4444'},
+];
+
+const LESSONS = [
+  {id:1,theme:'Salutations',title:'Premier Contact',color:'#ef4444',xp:25,
+   sam:"Hey! Today I teach you how real Americans say hello. Forget school English. Listen and repeat!",
+   words:[
+    {fr:'Hey quoi de neuf',en:"Hey what's up?",ph:'he wots ap',tip:'Salutation numero 1 aux USA'},
+    {fr:'Ca roule',en:"It's all good!",ph:'its ol goud',tip:'Reponse positive - culture americaine'},
+    {fr:'Je me presente',en:"I'm...",ph:'aim',tip:'My name is trop scolaire - dis juste I am'},
+    {fr:'Enchante',en:'Nice to meet you',ph:'nais tou mit you',tip:'Avec grand sourire - obligatoire!'},
+    {fr:'A plus',en:'Later!',ph:'lei-ter',tip:'Ou See ya - jamais Goodbye'}
+   ],
+   ex:[
+    {t:'fill', q:'Hey ___ up?',a:"what's",h:'wots'},
+    {t:'fill', q:"It's all ___!",a:'good',h:'goud'},
+    {t:'pick', q:'Comment dire Enchante?',a:'Nice to meet you',o:['Nice to meet you','Good to see you','Happy meeting','Glad hello']},
+    {t:'trans',q:'Je me presente Marie',a:"I'm Marie",h:'aim Marie'},
+    {t:'pick', q:'Comment dire A plus?',a:'Later!',o:['Goodbye!','Later!','Farewell!','See you!']}
+   ]},
+  {id:2,theme:'Salutations',title:'Faire Connaissance',color:'#ef4444',xp:25,
+   sam:"Round 2 on greetings! Now you learn how Americans do small talk and introductions.",
+   words:[
+    {fr:'Tu viens de quel pays',en:'Where are you from?',ph:'wer ar you from',tip:'Question classique en Amerique'},
+    {fr:'Je viens de France',en:"I'm from France",ph:'aim from Frans',tip:'Simple et direct'},
+    {fr:'Tu fais quoi dans la vie',en:'What do you do?',ph:'wot dou you dou',tip:'Pour demander le metier'},
+    {fr:'Ca fait longtemps',en:'How long have you been here?',ph:'hao long hav you bin hier',tip:'Pour connaitre quelquun'},
+    {fr:'On devrait se revoir',en:'We should hang out!',ph:'wi shoud hang aout',tip:'Hang out = passer du temps ensemble'}
+   ],
+   ex:[
+    {t:'trans',q:'Tu viens de quel pays',a:'Where are you from?',h:'wer ar you from'},
+    {t:'fill', q:"I'm ___ France",a:'from',h:'from'},
+    {t:'pick', q:'What do you do signifie',a:'Quel est ton metier',o:['Que fais-tu','Quel est ton metier','Comment tu vas','Que veux-tu']},
+    {t:'fill', q:'We should ___ out!',a:'hang',h:'hang'},
+    {t:'trans',q:'Je viens de France',a:"I'm from France",h:'aim from Frans'}
+   ]},
+  {id:3,theme:'Cafe',title:'Chez Starbucks',color:'#10b981',xp:30,
+   sam:"You are in New York at Starbucks. Say Can I get - never I would like. Too formal!",
+   words:[
+    {fr:'Un cafe sil vous plait',en:'Can I get a coffee?',ph:'kan ai guet a kofi',tip:'Can I get = formule magique US'},
+    {fr:'Pour emporter',en:'To go',ph:'tou goh',tip:'Pas take away - British!'},
+    {fr:'Combien ca coute',en:'How much?',ph:'hao match',tip:'Simple et direct'},
+    {fr:'Gardez la monnaie',en:'Keep the change',ph:'kip ze tcheinj',tip:'Pourboire important aux USA'},
+    {fr:'Tres delicieux',en:'So good!',ph:'soh goud',tip:'Les Americains exagerent toujours'}
+   ],
+   ex:[
+    {t:'pick', q:'Pour commander aux USA',a:'Can I get a coffee?',o:['I would like coffee','Can I get a coffee?','Give me coffee','Coffee please']},
+    {t:'fill', q:'___ go (pour emporter)',a:'To',h:'tou'},
+    {t:'trans',q:'Combien ca coute',a:'How much?',h:'hao match'},
+    {t:'fill', q:'Keep the ___',a:'change',h:'tcheinj'},
+    {t:'pick', q:'Delicieux en americain',a:'So good!',o:['Very delicious!','So good!','It tastes well!','Yummy!']}
+   ]},
+  {id:4,theme:'Cafe',title:'Au Restaurant',color:'#10b981',xp:30,
+   sam:"You are at a restaurant in Miami. American restaurants are casual. Here is what you need!",
+   words:[
+    {fr:'On est prets a commander',en:"We're ready to order",ph:'wir redi tou order',tip:'Pour appeler le serveur'},
+    {fr:'Que recommandez vous',en:'What do you recommend?',ph:'wot dou you rekomend',tip:'Question frequente en Amerique'},
+    {fr:'Je prends ca',en:"I'll have that",ph:'ail hav dat',tip:'Naturel pour commander'},
+    {fr:'Excellent repas',en:'That was amazing',ph:'dat woz ameizing',tip:'Les Americains utilisent superlatifs'},
+    {fr:'Addition sil vous plait',en:'Check please!',ph:'tchek pliz',tip:'Bill c est British - dis Check'}
+   ],
+   ex:[
+    {t:'trans',q:'On est prets a commander',a:"We're ready to order",h:'wir redi tou order'},
+    {t:'fill', q:"I'll ___ that",a:'have',h:'hav'},
+    {t:'pick', q:'Comment demander addition',a:'Check please!',o:['Bill please!','Money now!','Check please!','Pay time!']},
+    {t:'trans',q:'Excellent repas',a:'That was amazing',h:'dat woz ameizing'},
+    {t:'fill', q:'What do you ___?',a:'recommend',h:'rekomend'}
+   ]},
+  {id:5,theme:'Transport',title:'Dans un Uber',color:'#8b5cf6',xp:30,
+   sam:"You are in an Uber in LA. Americans love friendly direct people. Here is what to say!",
+   words:[
+    {fr:'Vous etes mon chauffeur',en:'Are you my driver?',ph:'ar you mai draiver',tip:'Toujours confirmer'},
+    {fr:'Tout droit',en:'Straight ahead',ph:'streit a-hed',tip:'Simple et clair'},
+    {fr:'Tournez a gauche',en:'Turn left',ph:'tern left',tip:'Court et efficace'},
+    {fr:'Arretez vous ici',en:'Right here',ph:'rait hier',tip:'Pour arreter le chauffeur'},
+    {fr:'Merci pour la course',en:'Thanks for the ride!',ph:'thenks for ze raid',tip:'Sourire + ces mots = 5 etoiles!'}
+   ],
+   ex:[
+    {t:'trans',q:'Vous etes mon chauffeur',a:'Are you my driver?',h:'ar you mai draiver'},
+    {t:'pick', q:'Comment dire tout droit',a:'Straight ahead',o:['Go forward','Straight ahead','Direct please','Continue road']},
+    {t:'fill', q:'Turn ___',a:'left',h:'left'},
+    {t:'fill', q:'___ here',a:'Right',h:'rait'},
+    {t:'trans',q:'Merci pour la course',a:'Thanks for the ride!',h:'thenks for ze raid'}
+   ]},
+  {id:6,theme:'Transport',title:'A Aeroport',color:'#8b5cf6',xp:30,
+   sam:"You are at JFK airport New York. Customs, check-in, boarding - I teach you everything!",
+   words:[
+    {fr:'Ou est enregistrement',en:'Where is check-in?',ph:'wer iz tchek-in',tip:'Premiere question aeroport'},
+    {fr:'Mon vol pour Paris',en:'I have a flight to Paris',ph:'ai hav a flait tou Paris',tip:'Simple pour se reperer'},
+    {fr:'Affaires ou tourisme',en:'Business or pleasure?',ph:'biznes or plejer',tip:'Question des douanes americaines'},
+    {fr:'Rien a declarer',en:'Nothing to declare',ph:'nathing tou dekler',tip:'Essentiel aux douanes'},
+    {fr:'Ou est la porte',en:'Where is the gate?',ph:'wer iz ze geit',tip:'Gate = porte embarquement'}
+   ],
+   ex:[
+    {t:'trans',q:'Ou est enregistrement',a:'Where is check-in?',h:'wer iz tchek-in'},
+    {t:'fill', q:'I have a ___ to Paris',a:'flight',h:'flait'},
+    {t:'pick', q:'Business or pleasure signifie',a:'Affaires ou tourisme',o:['Travail ou plaisir','Affaires ou tourisme','Premiere ou economy','Seul ou famille']},
+    {t:'fill', q:'Nothing to ___',a:'declare',h:'dekler'},
+    {t:'trans',q:'Ou est la porte',a:'Where is the gate?',h:'wer iz ze geit'}
+   ]},
+  {id:7,theme:'Travail',title:'Au Bureau',color:'#0ea5e9',xp:35,
+   sam:"You are in an American company. These 5 phrases make you sound like a total pro!",
+   words:[
+    {fr:'On fait le point',en:'Can we catch up?',ph:'kan wi katch ap',tip:'Catch up = se mettre a jour'},
+    {fr:'Je te tiens informe',en:"I'll keep you posted",ph:'ail kip you pohsted',tip:'Phrase cle en milieu pro US'},
+    {fr:'Je gere ca',en:"I'm on it",ph:'aim on it',tip:'Montre que tu prends en charge'},
+    {fr:'Bien recu',en:'Got it!',ph:'got it',tip:'Pour confirmer un message'},
+    {fr:'Excellent travail',en:'Great job!',ph:'greit djob',tip:'Les Americains complimentent souvent'}
+   ],
+   ex:[
+    {t:'trans',q:'On fait le point',a:'Can we catch up?',h:'kan wi katch ap'},
+    {t:'fill', q:"I'm ___ it",a:'on',h:'on'},
+    {t:'pick', q:'Confirmer un message',a:'Got it!',o:['Message received!','I understand!','Got it!','Confirmed!']},
+    {t:'fill', q:"I'll keep you ___",a:'posted',h:'pohsted'},
+    {t:'trans',q:'Excellent travail',a:'Great job!',h:'greit djob'}
+   ]},
+  {id:8,theme:'Travail',title:'En Reunion',color:'#0ea5e9',xp:35,
+   sam:"You are in a meeting with Americans. These phrases will make you shine professionally!",
+   words:[
+    {fr:'Pour resumer',en:'To recap...',ph:'tou ri-kap',tip:'Pour resumer ce qui a ete dit'},
+    {fr:'Je voulais aborder',en:'I wanted to bring up...',ph:'ai wonted tou bring ap',tip:'Pour introduire un sujet'},
+    {fr:'Tout le monde est ok',en:'Is everyone on board?',ph:'iz evriwane on bord',tip:'Pour verifier le consensus'},
+    {fr:'On se revoit quand',en:'When should we follow up?',ph:'wen shoud wi foloh ap',tip:'Follow up = donner suite'},
+    {fr:'Je gere ce point',en:"I'll handle it",ph:'ail handel it',tip:'Pour prendre une responsabilite'}
+   ],
+   ex:[
+    {t:'fill', q:'To ___... (pour resumer)',a:'recap',h:'ri-kap'},
+    {t:'trans',q:'Je voulais aborder sujet',a:'I wanted to bring up...',h:'ai wonted tou bring ap'},
+    {t:'pick', q:'On board en contexte pro',a:'D accord et partant',o:['Dans le bateau','D accord et partant','Embarque','A bord']},
+    {t:'fill', q:'When should we follow ___?',a:'up',h:'ap'},
+    {t:'trans',q:'Je gere ce point',a:"I'll handle it",h:'ail handel it'}
+   ]},
+  {id:9,theme:'Series',title:'Phrases de Series',color:'#f59e0b',xp:35,
+   sam:"My favorite! These phrases are in Friends, Breaking Bad, Stranger Things - ALL the time!",
+   words:[
+    {fr:'Tu plaisantes',en:'Are you kidding me?',ph:'ar you kid-ing mi',tip:'Surprise ou incredulite'},
+    {fr:'Laisse tomber',en:'Never mind',ph:'ne-ver maind',tip:'Pour clore un sujet'},
+    {fr:'Impossible',en:'No way!',ph:'noh wei',tip:'Surprise positive OU negative'},
+    {fr:'Je ne sais pas',en:'I have no idea',ph:'ai hav noh ai-dia',tip:'Plus naturel que I dont know'},
+    {fr:'Vraiment fou',en:"That's crazy!",ph:'dats krei-zi',tip:'Positif ou negatif selon contexte'}
+   ],
+   ex:[
+    {t:'pick', q:'Tu es surpris tu dis',a:'Are you kidding me?',o:['Really true?','Are you kidding me?','Is this real?','No seriously?']},
+    {t:'fill', q:'Never ___',a:'mind',h:'maind'},
+    {t:'trans',q:'Impossible',a:'No way!',h:'noh wei'},
+    {t:'pick', q:'Je ne sais pas en naturel',a:'I have no idea',o:['I dont know','I have no idea','I know not','No idea']},
+    {t:'fill', q:"That's ___!",a:'crazy',h:'krei-zi'}
+   ]},
+  {id:10,theme:'Series',title:'Pop Culture US',color:'#f59e0b',xp:35,
+   sam:"Sports, gaming, movies - Americans talk about pop culture ALL the time. You need this!",
+   words:[
+    {fr:'Moment decisif',en:"It's game time!",ph:'its geim taim',tip:'Game time = moment decisif'},
+    {fr:'Il excelle',en:"He's killing it!",ph:'hiz kil-ing it',tip:'Killing it = exceller'},
+    {fr:'Je regarde en serie',en:"I'm binge-watching it",ph:'aim bindj-watching it',tip:'Regarder toute une serie en un coup'},
+    {fr:'Tu reveles la fin',en:"That's a spoiler!",ph:'dats a spoil-er',tip:'Reveler la fin - interdit!'},
+    {fr:'Chair de poule',en:'It gave me goosebumps',ph:'it geiv mi gous-bamps',tip:'Goosebumps = chair de poule'}
+   ],
+   ex:[
+    {t:'fill', q:"It's ___ time!",a:'game',h:'geim'},
+    {t:'trans',q:'Il excelle',a:"He's killing it!",h:'hiz kiling it'},
+    {t:'pick', q:'Binge-watching signifie',a:'Voir toute serie en un coup',o:['Regarder a deux','Voir toute serie en un coup','Regarder vite','Regarder en avance']},
+    {t:'fill', q:"That's a ___!",a:'spoiler',h:'spoil-er'},
+    {t:'trans',q:'Chair de poule',a:'It gave me goosebumps',h:'it geiv mi gous-bamps'}
+   ]},
+  {id:11,theme:'Slang',title:'Vrai Slang US',color:'#ec4899',xp:40,
+   sam:"The English they do NOT teach you in school! Real Americans use these every single day!",
+   words:[
+    {fr:'Incroyable',en:"That's fire!",ph:'dats faier',tip:'Fire = excellent - utilise partout'},
+    {fr:'Je mens pas',en:'No cap',ph:'noh kap',tip:'No cap = for real, sans mentir'},
+    {fr:'Exactement',en:'Facts',ph:'fakts',tip:'Facts tout seul pour approuver'},
+    {fr:'Je suis la pour toi',en:'I got you',ph:'ai got you',tip:'Je te soutiens'},
+    {fr:'Vraiment fou',en:"That's wild!",ph:'dats waild',tip:'Pour quelque chose de surprenant'}
+   ],
+   ex:[
+    {t:'pick', q:'Incroyable en slang US',a:"That's fire!",o:["That's very good!","That's fire!",'Wow amazing!','Super great!']},
+    {t:'fill', q:'___ pour dire exactement',a:'Facts',h:'fakts'},
+    {t:'trans',q:'Je suis la pour toi',a:'I got you',h:'ai got you'},
+    {t:'fill', q:"That's ___! (vraiment fou)",a:'wild',h:'waild'},
+    {t:'pick', q:'No cap signifie',a:'Sans mentir',o:['Pas de chapeau','Sans mentir','Aucun probleme','Gratuit']}
+   ]},
+  {id:12,theme:'Slang',title:'Gen Z Americain',color:'#ec4899',xp:40,
+   sam:"The newest slang! The words Gen Z Americans use RIGHT NOW in 2024. Super trendy!",
+   words:[
+    {fr:'Un peu cool',en:"It's lowkey fire",ph:'its lohki faier',tip:'Lowkey = un peu, discretement'},
+    {fr:'Trop dramatique',en:'Being extra',ph:'bi-ing extra',tip:'Extra = exagere, theatral'},
+    {fr:'Authentique',en:"That's real",ph:'dats riel',tip:'Pour valider quelque chose de vrai'},
+    {fr:'Bonne ambiance',en:"They're a vibe",ph:'their a vaib',tip:'Vibe = energie positive'},
+    {fr:'Passe a la suite',en:'Move on',ph:'mouv on',tip:'Tres utilise pour avancer'}
+   ],
+   ex:[
+    {t:'pick', q:'Being extra signifie',a:'Exagerer et theatraliser',o:['Etre en plus','Exagerer et theatraliser','Avoir plus','Faire extra']},
+    {t:'fill', q:"They're a ___",a:'vibe',h:'vaib'},
+    {t:'trans',q:'Passe a la suite',a:'Move on',h:'mouv on'},
+    {t:'fill', q:"It's lowkey ___",a:'fire',h:'faier'},
+    {t:'pick', q:"That's real en slang",a:'Authentique et vrai',o:["C'est reel",'Authentique et vrai','La realite','Vrai']}
+   ]},
+  {id:13,theme:'Emotions',title:'Les Emotions',color:'#f97316',xp:35,
+   sam:"Americans are VERY expressive! They say I am SO pumped! Not just I am happy. Big energy!",
+   words:[
+    {fr:'Je suis super content',en:"I'm stoked!",ph:'aim stohkt',tip:'Stoked = tres excite'},
+    {fr:'Je suis fatigue',en:"I'm beat",ph:'aim bit',tip:'Plus naturel que I am tired'},
+    {fr:'Ca me met hors de moi',en:'That ticks me off!',ph:'dat tiks mi of',tip:'Expression imagee tres courante'},
+    {fr:'Je suis triste',en:"I'm down",ph:'aim daoun',tip:'I am down plus naturel que I am sad'},
+    {fr:'Je suis aux anges',en:"I'm over the moon!",ph:'aim ohver ze moun',tip:'Pour la joie extreme'}
+   ],
+   ex:[
+    {t:'pick', q:'Super content en americain',a:"I'm stoked!",o:["I'm very happy!","I'm stoked!","I am joyful!","I feel good!"]},
+    {t:'fill', q:"I'm ___ (fatigue)",a:'beat',h:'bit'},
+    {t:'trans',q:'Je suis triste',a:"I'm down",h:'aim daoun'},
+    {t:'fill', q:"I'm over the ___!",a:'moon',h:'moun'},
+    {t:'trans',q:'Ca me met hors de moi',a:'That ticks me off!',h:'dat tiks mi of'}
+   ]},
+  {id:14,theme:'Emotions',title:'Encouragements',color:'#f97316',xp:35,
+   sam:"Americans are masters at motivating each other. Learn these and people will love you!",
+   words:[
+    {fr:'Tu vas y arriver',en:'You got this!',ph:'you got dis',tip:'Phrase de motivation numero 1 en Amerique'},
+    {fr:'Je crois en toi',en:'I believe in you',ph:'ai biliv in you',tip:'Puissant et sincere'},
+    {fr:'Inquiete toi pas',en:"Don't sweat it",ph:'dont swet it',tip:'Ne t en fais pas'},
+    {fr:'Ton moment est venu',en:'This is your time!',ph:'dis iz yor taim',tip:'Pour encourager avant grand moment'},
+    {fr:'Tu geres vraiment',en:"You're crushing it!",ph:'yor krashing it',tip:'Crushing it = exceller'}
+   ],
+   ex:[
+    {t:'trans',q:'Tu vas y arriver',a:'You got this!',h:'you got dis'},
+    {t:'fill', q:'I ___ in you',a:'believe',h:'biliv'},
+    {t:'pick', q:"Don't sweat it signifie",a:'Ne t inquiete pas',o:["Ne transpire pas","Ne t inquiete pas","Ne pleure pas","Ca ira"]},
+    {t:'fill', q:'This is your ___!',a:'time',h:'taim'},
+    {t:'trans',q:'Tu geres vraiment',a:"You're crushing it!",h:'yor krashing it'}
+   ]},
+  {id:15,theme:'Prononciation',title:'Sons Americains',color:'#6366f1',xp:40,
+   sam:"This lesson is SUPER important. The 5 sounds that transform your accent completely!",
+   words:[
+    {fr:'T qui devient D',en:'Water = Wah-der',ph:'woh-der',tip:'T entre voyelles sonne comme D'},
+    {fr:'Son TH',en:'Think = Thinnk',ph:'thinnk',tip:'Pose la langue entre les dents et souffle'},
+    {fr:'R americain',en:'Really = Rilly',ph:'rili',tip:'Le R vient du fond de la gorge'},
+    {fr:'Gonna et Wanna',en:'Going to = Gonna',ph:'gon-na',tip:'Going to devient toujours gonna'},
+    {fr:'Reduction you',en:'See you = See ya',ph:'si ya',tip:'Les Americains avalent les sons'}
+   ],
+   ex:[
+    {t:'pick', q:"Americain prononce water",a:'Woh-der',o:['Wah-ter','Woh-der','Vater','Wouater']},
+    {t:'pick', q:'Son TH dans think',a:'Langue entre les dents',o:['Un S francais','Un Z','Langue entre les dents','Un T dur']},
+    {t:'pick', q:'Going to a oral devient',a:'Gonna',o:['Going to','Go to','Gonna','Goin']},
+    {t:'fill', q:'See ___ (a plus)',a:'ya',h:'ya'},
+    {t:'pick', q:'R americain vient de',a:'Fond de la gorge',o:['Bout des levres','Fond de la gorge','Les dents','Le nez']}
+   ]},
+  {id:16,theme:'Prononciation',title:'Rythme Melodie',color:'#6366f1',xp:40,
+   sam:"English has a rhythm! Americans speak with a melody. I teach you to sound natural!",
+   words:[
+    {fr:'Contractions orales',en:"I'm gonna do it",ph:'aim gona dou it',tip:'Gonna = going to - toujours a oral'},
+    {fr:'Accent americain',en:'I LOVE New York',ph:'ai LAV nyou york',tip:'Les Americains accentuent fortement'},
+    {fr:'Enchainement mots',en:'Whaddya want?',ph:'wod-ya wont',tip:'What do you devient whaddya rapide'},
+    {fr:'Ton montant fin',en:'Really? - ton montant',ph:'rili montant',tip:'Les Americains montent voix pour surprise'},
+    {fr:'Mots de remplissage',en:'Like... you know...',ph:'laik... you noh...',tip:'Like est mot le plus parle en US'}
+   ],
+   ex:[
+    {t:'pick', q:"I'm gonna signifie",a:"I'm going to",o:["I am gonna","I'm going to","I will go","I'm going"]},
+    {t:'fill', q:"Whaddya want vient de What ___ you want",a:'do',h:'dou'},
+    {t:'pick', q:"Accentuation americaine",a:'Accentue les mots importants',o:['Tout egal','Accentue les mots importants','Murmure','Parle vite']},
+    {t:'fill', q:'___ you know... (remplissage)',a:'Like',h:'laik'},
+    {t:'pick', q:'Ton montant fin de phrase',a:'Question ou surprise',o:['Colere','Question ou surprise','Joie','Doute']}
+   ]},
+  {id:17,theme:'Conversation',title:'Parler Naturel',color:'#14b8a6',xp:45,
+   sam:"Lesson 17 - you are becoming a real speaker! These automatic phrases flow naturally.",
+   words:[
+    {fr:'Honnetement',en:'Honestly...',ph:'on-es-tli',tip:'Pour introduire opinion sincere'},
+    {fr:'Tu vois ce que je veux dire',en:'You know what I mean?',ph:'you noh wot ai min',tip:'Les Americains disent ca tout le temps'},
+    {fr:'Euh pour reflechir',en:'I mean...',ph:'ai min',tip:'Pour gagner du temps naturellement'},
+    {fr:'Absolument',en:'Totally!',ph:'toh-tali',tip:'Bien plus americain que Yes absolutely'},
+    {fr:'Tres bonne idee',en:'Sounds good!',ph:'saoundz goud',tip:'Pour accepter une proposition'}
+   ],
+   ex:[
+    {t:'trans',q:'Honnetement',a:'Honestly...',h:'on-es-tli'},
+    {t:'fill', q:'You know what I ___?',a:'mean',h:'min'},
+    {t:'pick', q:'Tres bonne idee',a:'Sounds good!',o:['Looks well!','Sounds good!','Seems nice!','Appears okay!']},
+    {t:'fill', q:'___! (absolument)',a:'Totally',h:'toh-tali'},
+    {t:'trans',q:'Tu vois ce que je veux dire',a:'You know what I mean?',h:'you noh wot ai min'}
+   ]},
+  {id:18,theme:'Conversation',title:'Culture US',color:'#14b8a6',xp:45,
+   sam:"To speak American you need to know American culture. These references help you blend in!",
+   words:[
+    {fr:'C est gagne',en:"It's in the bag",ph:'its in ze bag',tip:"Signifie que c est gagne d avance"},
+    {fr:'Moment de verite',en:"It's game time",ph:'its geim taim',tip:'Reference sportive tres americaine'},
+    {fr:'Revenir essentiel',en:'Back to basics',ph:'bak tou bei-siks',tip:'Tres utilise en business americain'},
+    {fr:'Essayer quelque chose',en:'Give it a shot',ph:'giv it a shot',tip:'Shot = tentative'},
+    {fr:'Ca part dans tous sens',en:"It's all over the place",ph:'its ol oh-ver ze pleis',tip:'Pour dire que c est desorganise'}
+   ],
+   ex:[
+    {t:'trans',q:"C est gagne",a:"It's in the bag",h:'its in ze bag'},
+    {t:'fill', q:'Back to ___',a:'basics',h:'bei-siks'},
+    {t:'pick', q:'Give it a shot signifie',a:'Essaie-le',o:['Tire dessus','Essaie-le','Donne un coup','Lance-le']},
+    {t:'fill', q:"It's all over the ___",a:'place',h:'pleis'},
+    {t:'trans',q:'Moment de verite',a:"It's game time",h:'its geim taim'}
+   ]},
+  {id:19,theme:'Accent Parfait',title:'Sonner Natif',color:'#ef4444',xp:50,
+   sam:"This is elite level! The last 5 percent that separates good English from PERFECT English!",
+   words:[
+    {fr:'Contractions fluides',en:'Gonna Wanna Gotta',ph:'gona wona gota',tip:'Going to, want to, got to - contracte toujours'},
+    {fr:'Ton decontracte',en:'Yeah for sure',ph:'ye for shor',tip:'Le ton americain naturel'},
+    {fr:'Reduire him her',en:"Tell 'im Ask 'er",ph:'tel-im ask-er',tip:"Him devient 'im, her devient 'er a oral rapide"},
+    {fr:'Accentuer emotions',en:'I LOVE that!',ph:'ai LAV dat',tip:'Les Americains accentuent mots emotionnels'},
+    {fr:'Pause naturelle',en:'So... yeah...',ph:'soh... ye...',tip:'Pour rendre anglais plus naturel et humain'}
+   ],
+   ex:[
+    {t:'pick', q:'Gonna vient de',a:'Going to',o:['Go now','Going to','Gonna go','I go']},
+    {t:'fill', q:'Yeah for ___',a:'sure',h:'shor'},
+    {t:'pick', q:"Tell 'im c est quoi",a:'Tell him',o:["Tell I'm",'Tell him','Tell them','Tell me']},
+    {t:'fill', q:'I ___ that! (fort)',a:'LOVE',h:'LAV'},
+    {t:'pick', q:'Pourquoi dire So yeah',a:'Parler plus naturellement',o:['Gagner du temps','Parler plus naturellement','Etre poli','Stresser']}
+   ]},
+  {id:20,theme:'Accent Parfait',title:'Maitre Anglais US',color:'#ef4444',xp:60,
+   sam:"FINAL LESSON! You made it to lesson 20. The ultimate American conversation. YOU are ready!",
+   words:[
+    {fr:'Je suis totalement d accord',en:"I couldn't agree more",ph:'ai koudnt agri more',tip:'Plus fort que I agree'},
+    {fr:'Exactement juste',en:'Exactly! Spot on!',ph:'egzaktli spot on',tip:'Spot on = parfaitement juste'},
+    {fr:'Ca me depasse',en:"It's beyond me",ph:'its bi-yond mi',tip:'Pour dire qu on ne comprend pas'},
+    {fr:'C est le point cle',en:"That's the thing",ph:'dats ze thing',tip:"Pour confirmer l essentiel"},
+    {fr:'Pour etre honnete',en:'Not gonna lie...',ph:'not gona lai',tip:'Pour introduire quelque chose sincere'}
+   ],
+   ex:[
+    {t:'trans',q:'Je suis totalement d accord',a:"I couldn't agree more",h:'ai koudnt agri more'},
+    {t:'fill', q:'Exactly! Spot ___!',a:'on',h:'on'},
+    {t:'pick', q:"It's beyond me signifie",a:'Ca me depasse',o:["C est derriere moi",'Ca me depasse',"C est trop loin","Au-dela de moi"]},
+    {t:'fill', q:"That's the ___",a:'thing',h:'thing'},
+    {t:'trans',q:'Pour etre honnete',a:'Not gonna lie...',h:'not gona lai'}
+   ]}
+];
+
+// ============================================================
+// STATE
+// ============================================================
+var S = {
+  screen:'access', user:null, done:[], lesson:null, mode:null,
+  tab:'lessons', exIdx:0, exInp:'', exCho:null, exChk:false,
+  wiIdx:0, wiRev:false, mirPhase:'ready', mirRes:null, mirTx:'',
+  mirAtt:0, mirPassed:[], qIdx:0, qScore:0, qCho:null, qDone:false
+};
+
+// ============================================================
+// UTILS
+// ============================================================
+function qs(id){return document.getElementById(id);}
+function ce(tag,attrs,inner){
+  var el=document.createElement(tag);
+  if(attrs)Object.keys(attrs).forEach(k=>{ if(k==='style')Object.assign(el.style,attrs[k]); else if(k==='onclick')el.addEventListener('click',attrs[k]); else el.setAttribute(k,attrs[k]); });
+  if(inner!==undefined)el.innerHTML=inner;
+  return el;
+}
+
+function getXL(xp){var l=XP_LVS[0];XP_LVS.forEach(v=>{if(xp>=v.min)l=v;});return l;}
+function getNX(xp){for(var i=XP_LVS.length-1;i>=0;i--){if(xp>=XP_LVS[i].min)return XP_LVS[Math.min(i+1,XP_LVS.length-1)];}return XP_LVS[1];}
+function getBadges(user,done){
+  var b=[];
+  if(done.length>=1)b.push('first');
+  if(user.streak>=3)b.push('s3');
+  if(user.streak>=7)b.push('s7');
+  if(user.xp>=100)b.push('xp100');
+  if(user.xp>=500)b.push('xp500');
+  if(user.xp>=1000)b.push('xp1000');
+  if(done.length>=5)b.push('l5');
+  if(done.length>=10)b.push('l10');
+  if(done.length>=20)b.push('l20');
+  return b;
+}
+function shuffle(a){return[...a].sort(()=>Math.random()-0.5);}
+function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+const WIN=['Perfect! Exactly right!','Yes!! You sound American!','Amazing! Keep going!','Excellent! I am proud of you!'];
+const TRY=['Not quite - but you are close!','Almost! Listen one more time.','Keep going - you got this!'];
+
+function speak(text,speed,cb){
+  if(!window.speechSynthesis){if(cb)cb();return;}
+  window.speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';u.rate=speed||0.85;
+  if(cb)u.onend=cb;
+  window.speechSynthesis.speak(u);
+}
+
+function tone(ok){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if(ok){
+      [520,780,1040].forEach((f,i)=>{
+        var o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.frequency.value=f;g.gain.setValueAtTime(0.2,ctx.currentTime+i*0.12);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.12+0.3);
+        o.start(ctx.currentTime+i*0.12);o.stop(ctx.currentTime+i*0.12+0.35);
+      });
+    }else{
+      var o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.setValueAtTime(280,ctx.currentTime);
+      o.frequency.setValueAtTime(200,ctx.currentTime+0.15);
+      g.gain.setValueAtTime(0.2,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+      o.start();o.stop(ctx.currentTime+0.4);
+    }
+  }catch(e){}
+}
+
+function jingle(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [440,554,659,880,1108].forEach((f,i)=>{
+      var o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=f;
+      g.gain.setValueAtTime(0,ctx.currentTime+i*0.14);
+      g.gain.linearRampToValueAtTime(0.18,ctx.currentTime+i*0.14+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.14+0.32);
+      o.start(ctx.currentTime+i*0.14);o.stop(ctx.currentTime+i*0.14+0.38);
+    });
+  }catch(e){}
+}
+
+// ============================================================
+// RENDER ENGINE
+// ============================================================
+function render(){
+  var app=qs('app');
+  app.innerHTML='';
+  var el;
+  if(S.screen==='access') el=renderAccess();
+  else if(S.screen==='onboard') el=renderOnboard();
+  else if(S.screen==='home') el=renderHome();
+  else if(S.screen==='lmenu') el=renderLMenu();
+  else if(S.screen==='learn') el=renderLearn();
+  else if(S.screen==='mirror') el=renderMirror();
+  else if(S.screen==='exos') el=renderExos();
+  else if(S.screen==='quiz') el=renderQuiz();
+  app.appendChild(el);
+}
+
+// ============================================================
+// SCREENS
+// ============================================================
+function renderAccess(){
+  var d=ce('div',{style:{minHeight:'100vh',background:'linear-gradient(135deg,#0a0a14,#0f172a)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px',gap:'14px',textAlign:'center'}});
+  d.innerHTML='<div style="font-size:68px;line-height:1">&#127897;</div>'+
+    '<h1 style="color:#fff;font-size:44px;font-weight:900;letter-spacing:-2px;margin:0">TalkReal</h1>'+
+    '<p style="color:#ef4444;font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin:0">AVEC PROF SAM</p>'+
+    '<p style="color:#334155;font-size:13px;line-height:1.7;margin:4px 0 10px">Ton coach americain personnel.<br>Il t\'apprend. Tu repetes. Tu parles.</p>';
+  var box=ce('div',{style:{background:'rgba(255,255,255,0.03)',borderRadius:'24px',padding:'26px 20px',width:'100%',maxWidth:'340px',border:'1px solid rgba(255,255,255,0.08)'}});
+  box.innerHTML='<p style="color:#475569;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Code d\'acces beta</p>';
+  var inp=ce('input',{id:'codeInp',placeholder:'Ex: TALKREAL2024',style:{width:'100%',padding:'14px',fontSize:'17px',fontWeight:'800',borderRadius:'12px',border:'2px solid rgba(255,255,255,0.08)',background:'rgba(0,0,0,0.4)',color:'#fff',outline:'none',letterSpacing:'3px',textAlign:'center',boxSizing:'border-box',marginBottom:'8px'}});
+  inp.setAttribute('autocapitalize','characters');inp.setAttribute('autocorrect','off');
+  inp.addEventListener('input',function(){this.value=this.value.toUpperCase();});
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')doAccess();});
+  box.appendChild(inp);
+  var errP=ce('p',{id:'codeErr',style:{color:'#ef4444',fontSize:'12px',margin:'0 0 6px',display:'none'}});
+  box.appendChild(errP);
+  var btn=ce('button',{style:{width:'100%',padding:'14px',background:'linear-gradient(135deg,#ef4444,#ec4899)',color:'#fff',border:'none',borderRadius:'12px',fontSize:'15px',fontWeight:'800',cursor:'pointer'},onclick:doAccess},'Entrer dans TalkReal &#8594;');
+  box.appendChild(btn);
+  d.appendChild(box);
+  return d;
+}
+function doAccess(){
+  var v=qs('codeInp')?.value.trim().toUpperCase()||'';
+  if(CODES[v]){S.screen='onboard';S.onStep=0;render();}
+  else{var e=qs('codeErr');if(e){e.style.display='block';e.textContent='Code invalide. Verifie ton invitation.';}}
+}
+
+function renderOnboard(){
+  var step=S.onStep||0;
+  var d=ce('div',{style:{minHeight:'100vh',background:'#f8fafc',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px',gap:'14px',textAlign:'center'}});
+  if(step===0){
+    d.innerHTML='<div style="font-size:50px">&#128075;</div>'+
+      '<h2 style="font-size:24px;font-weight:900;color:#111;margin:0">Bienvenue sur TalkReal!</h2>'+
+      '<p style="color:#94a3b8;font-size:14px;margin:0">2 infos et tu rencontres Prof Sam</p>';
+    var ni=ce('input',{id:'nameInp',placeholder:'Ton prenom...',style:{width:'100%',maxWidth:'300px',padding:'14px 18px',fontSize:'17px',fontWeight:'700',borderRadius:'14px',border:'2px solid #e2e8f0',outline:'none',textAlign:'center',color:'#111'}});
+    var ai=ce('input',{id:'ageInp',placeholder:'Ton age...',type:'number',style:{width:'150px',padding:'14px 18px',fontSize:'17px',fontWeight:'700',borderRadius:'14px',border:'2px solid #e2e8f0',outline:'none',textAlign:'center',color:'#111'}});
+    ai.setAttribute('min','10');ai.setAttribute('max','99');
+    var btn=ce('button',{style:{background:'linear-gradient(135deg,#ef4444,#ec4899)',color:'#fff',border:'none',borderRadius:'14px',padding:'15px 32px',fontSize:'16px',fontWeight:'800',cursor:'pointer',width:'100%',maxWidth:'300px'},onclick:function(){
+      var n=qs('nameInp')?.value.trim(),a=parseInt(qs('ageInp')?.value);
+      if(!n||!a||a<10)return;
+      S.onName=n;S.onAge=a;S.onStep=1;render();
+    }},'Continuer &#8594;');
+    d.appendChild(ni);d.appendChild(ai);d.appendChild(btn);
+  } else if(step===1){
+    d.style.justifyContent='flex-start';d.style.paddingTop='36px';
+    d.innerHTML='<div style="text-align:center;margin-bottom:20px"><div style="font-size:28px;font-weight:900;color:#111">Hey '+S.onName+'!</div><div style="color:#94a3b8;font-size:14px;margin-top:5px">Ton niveau d\'anglais actuel?</div></div>';
+    var list=ce('div',{style:{display:'flex',flexDirection:'column',gap:'10px',width:'100%',maxWidth:'420px'}});
+    LEVELS.forEach(lv=>{
+      var btn=ce('button',{style:{background:'#fff',border:'2px solid #e2e8f0',borderRadius:'18px',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px',cursor:'pointer',textAlign:'left',width:'100%'},onclick:function(){
+        S.onLevel=lv;S.onStep=2;setTimeout(()=>jingle(),200);render();
+      }});
+      btn.innerHTML='<div style="width:48px;height:48px;border-radius:13px;background:'+lv.color+'18;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">'+levelIcon(lv.id)+'</div>'+
+        '<div style="flex:1"><div style="font-weight:800;font-size:14px;color:#111">'+lv.label+'</div><div style="color:#94a3b8;font-size:11px;margin-top:1px">'+lv.desc+'</div></div>'+
+        '<div style="color:#e2e8f0;font-size:16px">&#8594;</div>';
+      list.appendChild(btn);
+    });
+    d.appendChild(list);
+  } else {
+    d.style.background='linear-gradient(135deg,#080810,#0f172a)';
+    d.innerHTML='<div style="font-size:74px;line-height:1;animation:pop 0.5s ease">&#127897;</div>'+
+      '<h2 style="color:#fff;font-size:26px;font-weight:900;margin:0;letter-spacing:-1px">Let\'s go, '+S.onName+'!</h2>'+
+      '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:22px;padding:20px 24px;max-width:310px;width:100%;margin:4px 0">'+
+        '<div style="color:#ef4444;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:7px">PROF SAM</div>'+
+        '<div style="color:#fff;font-size:14px;line-height:1.7;font-style:italic">"Hey '+S.onName+'! I\'m Sam - your personal American English coach. Ready to speak like a real American? Let\'s GO!"</div>'+
+      '</div>'+
+      '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:14px 18px;max-width:290px;width:100%">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:#475569;font-size:12px">Niveau</span><span style="color:'+S.onLevel.color+';font-size:12px;font-weight:700">'+levelIcon(S.onLevel.id)+' '+S.onLevel.label+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between"><span style="color:#475569;font-size:12px">Programme</span><span style="color:#fff;font-size:12px;font-weight:700">20 lecons + badges</span></div>'+
+      '</div>';
+    var btn=ce('button',{style:{background:'linear-gradient(135deg,#ef4444,#ec4899)',color:'#fff',border:'none',borderRadius:'16px',padding:'17px 42px',fontSize:'17px',fontWeight:'900',cursor:'pointer',boxShadow:'0 8px 28px rgba(239,68,68,0.4)'},onclick:function(){
+      S.user={name:S.onName,age:S.onAge,level:S.onLevel,xp:0,streak:1};
+      S.done=[];S.screen='home';S.tab='lessons';render();
+    }},"C'est parti avec Sam! &#128640;");
+    d.appendChild(btn);
+  }
+  return d;
+}
+
+function levelIcon(id){
+  var m={zero:'&#129370;',debutant:'&#127807;',scolaire:'&#128218;',inter:'&#128640;',avance:'&#127919;',accent:'&#11088;'};
+  return m[id]||'&#127807;';
+}
+
+function renderHome(){
+  var u=S.user,done=S.done,tab=S.tab;
+  var xl=getXL(u.xp),nx=getNX(u.xp);
+  var pct=nx.min>xl.min?Math.min(100,((u.xp-xl.min)/(nx.min-xl.min))*100):100;
+  var earned=getBadges(u,done);
+  var themes=[...new Set(LESSONS.map(l=>l.theme))];
+
+  var d=ce('div',{style:{display:'flex',flexDirection:'column',height:'100vh',background:'#f8fafc'}});
+
+  // Header
+  var hdr=ce('div',{style:{background:'linear-gradient(135deg,#080810,#0f172a)',padding:'20px 18px 14px',flexShrink:'0'}});
+  hdr.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">'+
+    '<div>'+
+      '<div style="color:#475569;font-size:12px">Bonjour &#128075;</div>'+
+      '<div style="color:#fff;font-size:22px;font-weight:900">'+u.name+'</div>'+
+      '<div style="display:flex;gap:5px;margin-top:4px">'+
+        '<span style="background:'+u.level.color+'22;color:'+u.level.color+';border-radius:7px;padding:2px 9px;font-size:10px;font-weight:700">'+levelIcon(u.level.id)+' '+u.level.label+'</span>'+
+        '<span style="background:rgba(255,255,255,0.06);color:#64748b;border-radius:7px;padding:2px 9px;font-size:10px;font-weight:600">'+earned.length+' badges</span>'+
+      '</div>'+
+    '</div>'+
+    '<div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:8px 12px;text-align:center">'+
+      '<div style="font-size:18px">&#128293;</div>'+
+      '<div style="color:#fff;font-size:15px;font-weight:900">'+u.streak+'</div>'+
+      '<div style="color:#475569;font-size:9px">jours</div>'+
+    '</div>'+
+  '</div>'+
+  '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:10px 12px;margin-bottom:13px;display:flex;gap:9px;align-items:center">'+
+    '<div style="font-size:20px">&#127897;</div>'+
+    '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF SAM</div>'+
+    '<div style="color:#64748b;font-size:11px;line-height:1.4">'+(done.length===0?'Hey '+u.name+'! Ready for lesson 1? Lets GO!':done.length<10?'Great progress '+u.name+'! Keep it up!':done.length<20?u.name+', you are halfway! Im proud of you!':'LEGENDARY '+u.name+'! All 20 lessons completed!')+'</div></div>'+
+  '</div>'+
+  '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'+
+    '<span style="color:#475569;font-size:10px">'+xl.n+'</span>'+
+    '<span style="color:#334155;font-size:10px">'+u.xp+' XP</span>'+
+  '</div>'+
+  '<div style="height:5px;background:rgba(255,255,255,0.06);border-radius:99px">'+
+    '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+xl.color+','+nx.color+');border-radius:99px;transition:width 0.8s ease"></div>'+
+  '</div>'+
+  '<div style="color:#334155;font-size:10px;margin-top:3px;text-align:right">'+(nx.min>xl.min?'&#8594; '+nx.n+' dans '+(nx.min-u.xp)+' XP':'NIVEAU MAX !')+'</div>';
+  d.appendChild(hdr);
+
+  // Tabs
+  var tabs=ce('div',{style:{background:'#fff',borderBottom:'1px solid #f1f5f9',padding:'0 12px',flexShrink:'0',display:'flex',overflowX:'auto'}});
+  [['lessons','&#128218;','Lecons'],['badges','&#127942;','Badges'],['rank','&#128081;','Classement'],['culture','&#127925;','Culture']].forEach(function(t){
+    var tb=ce('button',{style:{flex:'1',padding:'11px 4px',background:'none',border:'none',borderBottom:tab===t[0]?'3px solid #ef4444':'3px solid transparent',cursor:'pointer',fontSize:'10px',fontWeight:tab===t[0]?'800':'600',color:tab===t[0]?'#ef4444':'#94a3b8',display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',minWidth:'60px'},onclick:function(){S.tab=t[0];render();}},t[1]+'<br>'+t[2]);
+    tabs.appendChild(tb);
+  });
+  d.appendChild(tabs);
+
+  // Content
+  var content=ce('div',{style:{flex:'1',overflowY:'auto'}});
+
+  if(tab==='lessons'){
+    var pd=ce('div',{style:{padding:'14px'}});
+    // Progress bar
+    var prog=ce('div',{style:{background:'#fff',borderRadius:'16px',padding:'12px 16px',marginBottom:'14px',boxShadow:'0 2px 8px rgba(0,0,0,0.04)'}});
+    prog.innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:800;font-size:13px;color:#111">Ta progression</span><span style="font-weight:700;font-size:12px;color:#ef4444">'+done.length+'/20</span></div>'+
+      '<div style="height:7px;background:#f1f5f9;border-radius:99px;overflow:hidden"><div style="height:100%;width:'+(done.length/20*100)+'%;background:linear-gradient(90deg,#ef4444,#ec4899);border-radius:99px;transition:width 0.6s"></div></div>';
+    pd.appendChild(prog);
+    themes.forEach(function(theme){
+      var tl=LESSONS.filter(l=>l.theme===theme),fl=tl[0];
+      var thDiv=ce('div',{style:{marginBottom:'18px'}});
+      var thHead=ce('div',{style:{display:'flex',alignItems:'center',gap:'7px',marginBottom:'8px'}});
+      thHead.innerHTML='<div style="width:26px;height:26px;border-radius:7px;background:'+fl.color+'15;display:flex;align-items:center;justify-content:center;font-size:13px">&#127919;</div>'+
+        '<span style="font-weight:800;font-size:13px;color:#111">'+theme+'</span>'+
+        '<span style="font-size:10px;color:#cbd5e1;margin-left:auto">'+tl.filter(l=>done.includes(l.id)).length+'/'+tl.length+'</span>';
+      thDiv.appendChild(thHead);
+      var llist=ce('div',{style:{display:'flex',flexDirection:'column',gap:'7px'}});
+      tl.forEach(function(lesson){
+        var isDone=done.includes(lesson.id);
+        var prev=lesson.id===1||done.includes(lesson.id-1);
+        var locked=!prev&&!isDone;
+        var lb=ce('button',{style:{background:locked?'#f8fafc':'#fff',border:isDone?'2px solid '+lesson.color:'2px solid #e2e8f0',borderRadius:'16px',padding:'12px 14px',display:'flex',alignItems:'center',gap:'10px',cursor:locked?'not-allowed':'pointer',opacity:locked?'0.45':'1',textAlign:'left',width:'100%',boxShadow:isDone?'0 3px 12px '+lesson.color+'18':'0 2px 5px rgba(0,0,0,0.04)'},onclick:function(){if(!locked){S.lesson=lesson;S.screen='lmenu';render();}}});
+        lb.innerHTML='<div style="width:44px;height:44px;border-radius:12px;background:'+lesson.color+'15;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative">'+
+          (locked?'&#128274;':'&#127897;')+(isDone?'<div style="position:absolute;bottom:-3px;right:-3px;background:'+lesson.color+';border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff">&#10003;</div>':'')+
+          '</div>'+
+          '<div style="flex:1"><div style="font-weight:800;font-size:13px;color:#111">'+(locked?'':lesson.id+'. ')+lesson.title+'</div>'+
+          '<div style="display:flex;gap:6px;margin-top:3px"><span style="background:'+lesson.color+'15;color:'+lesson.color+';font-size:9px;font-weight:700;border-radius:5px;padding:1px 6px">+'+lesson.xp+' XP</span><span style="color:#cbd5e1;font-size:9px">5 phrases</span></div></div>'+
+          (!locked?'<div style="color:'+lesson.color+';font-size:12px">&#8594;</div>':'');
+        llist.appendChild(lb);
+      });
+      thDiv.appendChild(llist);
+      pd.appendChild(thDiv);
+    });
+    pd.appendChild(ce('div',{style:{height:'20px'}}));
+    content.appendChild(pd);
+  }
+
+  else if(tab==='badges'){
+    var pd=ce('div',{style:{padding:'14px'}});
+    var samBox=ce('div',{style:{background:'linear-gradient(135deg,#080810,#0f172a)',borderRadius:'14px',padding:'12px 14px',marginBottom:'14px',display:'flex',gap:'9px'}});
+    samBox.innerHTML='<div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF SAM</div><div style="color:#64748b;font-size:11px">'+earned.length+' badges gagnes sur '+BADGES.length+'. '+u.name+', you are doing amazing!</div></div>';
+    pd.appendChild(samBox);
+    pd.appendChild(ce('div',{style:{fontWeight:'800',fontSize:'15px',color:'#111',marginBottom:'10px'}},'Tes Badges &#127942;'));
+    var grid=ce('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}});
+    BADGES.forEach(function(badge){
+      var e=earned.includes(badge.id);
+      var card=ce('div',{style:{background:e?'#fff':'#f8fafc',border:e?'2px solid '+badge.color:'2px solid #f1f5f9',borderRadius:'16px',padding:'14px',textAlign:'center',opacity:e?'1':'0.5',boxShadow:e?'0 4px 12px '+badge.color+'18':'none',transition:'all 0.3s'}});
+      card.innerHTML='<div style="font-size:28px;margin-bottom:4px;filter:'+(e?'none':'grayscale(1)')+'">'+badge.icon+'</div>'+
+        '<div style="font-weight:800;font-size:11px;color:'+(e?'#111':'#94a3b8')+'">'+badge.label+'</div>'+
+        '<div style="font-size:9px;color:'+(e?badge.color:'#cbd5e1')+';margin-top:2px;line-height:1.3">'+badge.desc+'</div>'+
+        (e?'<div style="margin-top:4px;font-size:9px;background:'+badge.color+'15;color:'+badge.color+';border-radius:5px;padding:1px 6px;display:inline-block;font-weight:700">DEBLOQUE!</div>':'');
+      grid.appendChild(card);
+    });
+    pd.appendChild(grid);
+    pd.appendChild(ce('div',{style:{height:'20px'}}));
+    content.appendChild(pd);
+  }
+
+  else if(tab==='rank'){
+    var pd=ce('div',{style:{padding:'14px'}});
+    pd.innerHTML='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:9px"><div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF SAM</div><div style="color:#64748b;font-size:11px">Competition is healthy! Push yourself to the top, '+u.name+'!</div></div></div>'+
+      '<div style="font-weight:800;font-size:15px;color:#111;margin-bottom:10px">Classement Beta &#128081;</div>'+
+      '<div style="background:linear-gradient(135deg,#ef444415,#ec489910);border:2px solid #ef4444;border-radius:16px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'+
+        '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:12px;flex-shrink:0">&#11088;</div>'+
+        '<div style="flex:1"><div style="font-weight:800;font-size:13px;color:#111">'+u.name+' - Toi</div><div style="font-size:11px;color:#ef4444;font-weight:600">'+u.xp+' XP</div></div>'+
+        '<div style="font-weight:900;font-size:16px;color:#ef4444">#'+(Math.max(1,FRIENDS.filter(f=>f.xp>u.xp).length+1))+'</div>'+
+      '</div>';
+    var medals=['&#129351;','&#129352;','&#129353;'];
+    FRIENDS.sort((a,b)=>b.xp-a.xp).forEach(function(f,i){
+      var row=ce('div',{style:{background:'#fff',border:'2px solid #f1f5f9',borderRadius:'14px',padding:'11px 14px',marginBottom:'7px',display:'flex',alignItems:'center',gap:'10px',boxShadow:'0 2px 5px rgba(0,0,0,0.04)'}});
+      row.innerHTML='<div style="width:28px;text-align:center;font-size:16px;flex-shrink:0">'+(i<3?medals[i]:(i+1)+'')+'</div>'+
+        '<div style="width:32px;height:32px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#64748b;flex-shrink:0">'+f.n[0]+'</div>'+
+        '<div style="flex:1"><div style="font-weight:800;font-size:12px;color:#111">'+f.n+'</div><div style="font-size:10px;color:#94a3b8">'+f.xp+' XP &#128293; '+f.s+'j</div></div>';
+      pd.appendChild(row);
+    });
+    pd.appendChild(ce('div',{style:{height:'20px'}}));
+    content.appendChild(pd);
+  }
+
+  else if(tab==='culture'){
+    var pd=ce('div',{style:{padding:'14px'}});
+    pd.innerHTML='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:9px"><div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF SAM</div><div style="color:#64748b;font-size:11px">To speak American you need to know American culture. Here are the essentials!</div></div></div>'+
+      '<div style="font-weight:800;font-size:15px;color:#111;margin-bottom:10px">Culture Americaine &#127925;</div>';
+    CULTURE.forEach(function(c){
+      var card=ce('div',{style:{background:'#fff',border:'2px solid #f1f5f9',borderRadius:'18px',padding:'16px',marginBottom:'10px',boxShadow:'0 2px 7px rgba(0,0,0,0.04)'}});
+      card.innerHTML='<div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><div style="font-size:28px">'+c.icon+'</div><div style="font-weight:800;font-size:14px;color:#111">'+c.title+'</div></div>'+
+        '<div style="font-size:12px;color:#64748b;line-height:1.6">'+c.text+'</div>';
+      pd.appendChild(card);
+    });
+    pd.appendChild(ce('div',{style:{height:'20px'}}));
+    content.appendChild(pd);
+  }
+
+  d.appendChild(content);
+  return d;
+}
+
+function backBtn(cb){
+  var b=ce('button',{style:{background:'none',border:'none',color:'#94a3b8',fontSize:'14px',cursor:'pointer',padding:'0',marginBottom:'4px'},onclick:cb},'&#8592; Retour');
+  return b;
+}
+
+function renderLMenu(){
+  var lesson=S.lesson,u=S.user;
+  var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
+  d.appendChild(backBtn(function(){S.screen='home';render();}));
+  d.innerHTML+=
+    '<div style="text-align:center;margin:16px 0 20px">'+
+      '<div style="width:70px;height:70px;border-radius:20px;background:'+lesson.color+'15;font-size:32px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">&#127897;</div>'+
+      '<div style="font-size:10px;color:#94a3b8;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px">'+lesson.theme+'</div>'+
+      '<h2 style="margin:0;font-size:20px;font-weight:900">Lecon '+lesson.id+' — '+lesson.title+'</h2>'+
+      '<div style="display:inline-block;margin-top:5px;background:'+lesson.color+'15;color:'+lesson.color+';border-radius:7px;padding:2px 11px;font-size:11px;font-weight:700">+'+lesson.xp+' XP</div>'+
+    '</div>'+
+    '<div id="samCard" style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:18px;padding:16px;margin-bottom:16px">'+
+      '<div style="display:flex;gap:11px;align-items:flex-start">'+
+        '<div style="font-size:28px;flex-shrink:0">&#127897;</div>'+
+        '<div style="flex:1">'+
+          '<div style="color:#ef4444;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:5px">PROF SAM</div>'+
+          '<div style="color:#94a3b8;font-size:12px;line-height:1.6;font-style:italic">"'+lesson.sam+'"</div>'+
+          '<button id="samPlayBtn" style="margin-top:9px;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.25);border-radius:9px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer">&#128266; Ecouter Sam</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  var modes=[
+    {key:'learn',icon:'&#127917;',label:'Apprendre avec Sam',desc:'Decouvre les phrases avec contexte americain'},
+    {key:'mirror',icon:'&#127897;',label:'Repete apres Sam',desc:'Tu parles, Sam corrige ton accent',hot:true},
+    {key:'exos',icon:'&#9999;',label:'Exercices',desc:'3 types: remplir, traduire, choix multiple',hot:true},
+    {key:'quiz',icon:'&#127919;',label:'Quiz - Gagne tes XP',desc:'Valide la lecon et debloque la suivante'},
+  ];
+  var mlist=ce('div',{style:{display:'flex',flexDirection:'column',gap:'9px'}});
+  modes.forEach(function(m){
+    var btn=ce('button',{style:{background:m.hot?lesson.color+'08':'#fff',border:m.hot?'2px solid '+lesson.color:'2px solid #e2e8f0',borderRadius:'14px',padding:'12px 14px',display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',textAlign:'left',width:'100%'},onclick:function(){S.screen=m.key;S.wiIdx=0;S.wiRev=false;S.mirPhase='ready';S.mirRes=null;S.mirAtt=0;S.mirPassed=[];S.exIdx=0;S.exInp='';S.exCho=null;S.exChk=false;S.qIdx=0;S.qScore=0;S.qCho=null;S.qDone=false;render();}});
+    btn.innerHTML='<div style="width:40px;height:40px;border-radius:11px;background:'+lesson.color+'12;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">'+m.icon+'</div>'+
+      '<div><div style="font-weight:800;font-size:13px;color:#111">'+m.label+'</div><div style="color:#94a3b8;font-size:10px;margin-top:1px">'+m.desc+'</div></div>'+
+      '<div style="margin-left:auto;color:#e2e8f0">&#8594;</div>';
+    mlist.appendChild(btn);
+  });
+  d.appendChild(mlist);
+  setTimeout(function(){
+    var b=qs('samPlayBtn');
+    if(b)b.addEventListener('click',function(){speak(lesson.sam,0.88);b.textContent='&#128266; Reecouter Sam';});
+    var bb=d.querySelector('button');
+    if(bb)bb.addEventListener('click',function(){S.screen='home';render();});
+  },50);
+  return d;
+}
+
+function renderLearn(){
+  var lesson=S.lesson,u=S.user,wi=S.wiIdx;
+  var w=lesson.words[wi];
+  var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
+  d.appendChild(backBtn(function(){S.screen='lmenu';render();}));
+  d.innerHTML+='<div style="text-align:center;margin-bottom:10px;font-size:11px;color:#94a3b8">Phrase '+(wi+1)+'/'+lesson.words.length+'</div>'+
+    '<div style="background:#fff;border-radius:18px;padding:20px;border:2px solid #f1f5f9;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,0.05)">'+
+      '<div style="font-size:10px;color:#cbd5e1;margin-bottom:3px;font-weight:700;letter-spacing:1px">FRANCAIS</div>'+
+      '<div style="font-size:20px;font-weight:900;color:#111;margin-bottom:14px">'+w.fr+'</div>'+
+      (!S.wiRev?
+        '<button id="revBtn" style="width:100%;background:#f8fafc;border:none;border-radius:11px;padding:13px;font-size:13px;color:#94a3b8;cursor:pointer;font-weight:700">Voir la traduction de Sam &#8594;</button>':
+        '<div>'+
+          '<div style="font-size:10px;color:#cbd5e1;margin-bottom:3px;font-weight:700;letter-spacing:1px">SAM DIT...</div>'+
+          '<div style="font-size:22px;font-weight:900;color:#111;margin-bottom:3px">'+w.en+'</div>'+
+          '<div style="font-size:14px;color:'+lesson.color+';margin-bottom:9px;font-style:italic">['+w.ph+']</div>'+
+          '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:9px 11px;margin-bottom:11px">'+
+            '<div style="font-size:9px;color:#92400e;font-weight:700;margin-bottom:2px;letter-spacing:1px">SAM EXPLIQUE</div>'+
+            '<div style="font-size:11px;color:#78350f;line-height:1.5">'+w.tip+'</div>'+
+          '</div>'+
+          '<button id="listenBtn" style="width:100%;background:#111;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:800;cursor:pointer">&#128266; Ecouter Sam x'+u.level.reps+'</button>'+
+        '</div>'
+      )+
+    '</div>';
+  var nav=ce('div',{style:{display:'flex',gap:'9px'}});
+  var prev=ce('button',{style:{flex:'1',background:'#f1f5f9',border:'none',borderRadius:'13px',padding:'12px',fontSize:'13px',fontWeight:'700',cursor:'pointer',opacity:wi===0?'0.3':'1'},onclick:function(){if(wi>0){S.wiIdx--;S.wiRev=false;render();}}},'\u2190 Prec');
+  var next=ce('button',{style:{flex:'2',background:lesson.color,color:'#fff',border:'none',borderRadius:'13px',padding:'12px',fontSize:'13px',fontWeight:'700',cursor:'pointer',opacity:wi===lesson.words.length-1?'0.3':'1'},onclick:function(){if(wi<lesson.words.length-1){S.wiIdx++;S.wiRev=false;render();}}}, 'Suivant \u2192');
+  nav.appendChild(prev);nav.appendChild(next);
+  d.appendChild(nav);
+  setTimeout(function(){
+    var r=qs('revBtn');if(r)r.addEventListener('click',function(){S.wiRev=true;render();});
+    var l=qs('listenBtn');
+    if(l)l.addEventListener('click',function(){
+      var c=0;var nx=function(){c++;speak(w.en,u.level.speed,function(){if(c<u.level.reps)setTimeout(nx,500);});};nx();
+    });
+  },50);
+  return d;
+}
+
+function renderMirror(){
+  var lesson=S.lesson,u=S.user,wi=S.wiIdx;
+  var w=lesson.words[wi];
+  var phase=S.mirPhase,res=S.mirRes;
+  var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
+  d.appendChild(backBtn(function(){S.screen='lmenu';render();}));
+  if(phase==='done'){
+    d.innerHTML+='<div style="text-align:center;padding:30px 0">'+
+      '<div style="font-size:66px">&#127897;</div>'+
+      '<div style="font-size:22px;font-weight:900;margin:10px 0">Sam est fier de toi!</div>'+
+      '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:16px;padding:14px 18px;max-width:290px;margin:0 auto 16px">'+
+        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF SAM</div>'+
+        '<div style="color:#94a3b8;font-size:12px;font-style:italic">'+S.mirPassed.length+'/'+lesson.words.length+' phrases reussies. '+u.name+', you are becoming a real American speaker!</div>'+
+      '</div>'+
+      '<button id="backBtn2" style="background:'+lesson.color+';color:#fff;border:none;border-radius:13px;padding:14px 30px;font-size:14px;font-weight:800;cursor:pointer">Retour &#127968;</button>'+
+    '</div>';
+    setTimeout(function(){var b=qs('backBtn2');if(b)b.addEventListener('click',function(){S.screen='lmenu';render();});},50);
+    return d;
+  }
+  d.innerHTML+='<div style="text-align:center;margin-bottom:10px"><div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Phrase '+(wi+1)+'/'+lesson.words.length+'</div>'+
+    '<div style="height:4px;background:#e2e8f0;border-radius:99px"><div style="height:100%;width:'+(wi/lesson.words.length*100)+'%;background:'+lesson.color+';border-radius:99px;transition:width 0.4s"></div></div></div>'+
+    '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:18px;padding:18px;text-align:center;margin-bottom:14px">'+
+      '<div style="font-size:10px;color:#475569;margin-bottom:5px;letter-spacing:1px">DIS EN AMERICAIN</div>'+
+      '<div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:7px">'+w.fr+'</div>'+
+      '<div style="font-size:15px;color:'+lesson.color+';font-weight:700;margin-bottom:1px">'+w.en+'</div>'+
+      '<div style="font-size:11px;color:#475569;font-style:italic">['+w.ph+']</div>'+
+    '</div>';
+  if(phase==='result'&&res){
+    d.innerHTML+='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:12px;padding:11px 14px;margin-bottom:9px;display:flex;gap:9px">'+
+      '<div style="font-size:20px">&#127897;</div>'+
+      '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">SAM DIT:</div>'+
+      '<div style="color:'+(res==='ok'?'#10b981':'#f59e0b')+';font-size:12px;font-weight:700">'+(res==='ok'?rnd(WIN):rnd(TRY))+'</div>'+
+      (S.mirTx?'<div style="color:#475569;font-size:10px;margin-top:1px">Tu as dit: "'+S.mirTx+'"</div>':'')+
+      '</div></div>'+
+      '<div style="background:'+(res==='ok'?'#10b98112':'#f59e0b12')+';border:2px solid '+(res==='ok'?'#10b981':'#f59e0b')+';border-radius:13px;padding:13px;text-align:center;margin-bottom:9px">'+
+        '<div style="font-size:34px;margin-bottom:3px">'+(res==='ok'?'&#9989;':'&#128260;')+'</div>'+
+        '<div style="font-weight:800;font-size:15px;color:'+(res==='ok'?'#10b981':'#f59e0b')+'">'+(res==='ok'?'Parfait!':'Presque! Reessaie')+'</div>'+
+      '</div>';
+    var nb=ce('button',{style:{width:'100%',background:res==='ok'?'#10b981':lesson.color,color:'#fff',border:'none',borderRadius:'12px',padding:'13px',fontSize:'14px',fontWeight:'800',cursor:'pointer'},onclick:function(){
+      if(res==='ok'){S.mirPassed.push(wi);if(wi+1>=lesson.words.length){S.mirPhase='done';}else{S.wiIdx++;S.mirPhase='ready';S.mirRes=null;S.mirAtt=0;}}
+      else{S.mirAtt++;S.mirRes=null;S.mirPhase='ready';}
+      render();
+    }},res==='ok'?(wi+1>=lesson.words.length?'Terminer &#127937;':'Suivant &#8594;'):'Reessayer &#128260;');
+    d.appendChild(nb);
+  } else if(phase==='listening'){
+    d.innerHTML+='<div style="text-align:center;padding:18px;background:'+lesson.color+'10;border-radius:16px;border:2px solid '+lesson.color+';margin-bottom:11px">'+
+      '<div style="font-size:32px;margin-bottom:5px">&#128066;</div>'+
+      '<div style="font-weight:800;font-size:14px;color:#111;margin-bottom:5px">Sam t\'ecoute...</div>'+
+      '<div style="display:flex;justify-content:center;gap:4px">'+'<div style="width:4px;height:20px;background:'+lesson.color+';border-radius:99px;animation:bounce 0.7s 0s infinite alternate"></div>'.repeat(4)+'</div>'+
+    '</div>';
+  } else if(phase==='speaking'){
+    d.innerHTML+='<div style="text-align:center;padding:14px;background:#f1f5f9;border-radius:14px;margin-bottom:11px">'+
+      '<div style="font-size:26px">&#128266;</div><div style="font-weight:700;font-size:12px;color:#111;margin-top:3px">Sam parle ('+u.level.reps+'x)...</div>'+
+    '</div>';
+  } else {
+    if(S.mirAtt>0)d.innerHTML+='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:11px;padding:9px 13px;text-align:center;margin-bottom:10px;width:100%"><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">SAM:</div><div style="color:#94a3b8;font-size:11px;font-style:italic">Don\'t give up! Try: '+w.en+'</div></div>';
+    var micBtn=ce('div',{style:{display:'flex',flexDirection:'column',alignItems:'center',gap:'11px'}});
+    var mb=ce('button',{style:{width:'86px',height:'86px',borderRadius:'50%',background:'linear-gradient(135deg,'+lesson.color+',#ec4899)',border:'none',cursor:'pointer',fontSize:'32px',boxShadow:'0 9px 26px '+lesson.color+'45',display:'flex',alignItems:'center',justifyContent:'center'},onclick:startRec},'&#127897;');
+    micBtn.innerHTML='<div style="font-weight:800;font-size:14px;color:#111">Appuie et parle!</div><div style="font-size:11px;color:#94a3b8">Dis: "'+w.en+'"</div>';
+    micBtn.insertBefore(mb,micBtn.firstChild);
+    var lisBtn=ce('button',{style:{background:'none',border:'1.5px solid '+lesson.color,borderRadius:'10px',padding:'6px 16px',fontSize:'11px',color:lesson.color,cursor:'pointer',fontWeight:'700'},onclick:function(){
+      S.mirPhase='speaking';render();
+      setTimeout(function(){var c=0;var nx=function(){c++;speak(w.en,u.level.speed,function(){if(c<u.level.reps)setTimeout(nx,500);else{S.mirPhase='ready';render();}});};nx();},100);
+    }},'&#128266; Ecouter x'+u.level.reps);
+    micBtn.appendChild(lisBtn);
+    d.appendChild(micBtn);
+  }
+  return d;
+}
+
+function startRec(){
+  var lesson=S.lesson,u=S.user,wi=S.wiIdx,w=lesson.words[wi];
+  S.mirPhase='listening';render();
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){S.mirPhase='manual';render();return;}
+  var got=false;
+  try{
+    var r=new SR();
+    r.lang='en-US';r.continuous=false;r.interimResults=false;
+    r.onresult=function(e){
+      got=true;
+      var said=e.results[0][0].transcript.toLowerCase().trim();
+      var tw=w.en.toLowerCase().replace(/[^a-z\s]/g,'').split(' ').filter(Boolean);
+      var sw=said.replace(/[^a-z\s]/g,'').split(' ').filter(Boolean);
+      var m=tw.filter(t=>sw.some(s=>s.includes(t.slice(0,3))||t.includes(s.slice(0,3))));
+      S.mirTx=said;S.mirRes=m.length/Math.max(tw.length,1)>=0.45?'ok':'fail';
+      S.mirPhase='result';tone(S.mirRes==='ok');render();
+    };
+    r.onerror=function(e){got=true;S.mirPhase=e.error==='not-allowed'?'manual':'ready';render();};
+    r.onend=function(){if(!got){S.mirPhase='manual';render();}};
+    r.start();
+  }catch(e){S.mirPhase='manual';render();}
+}
+
+function renderExos(){
+  var lesson=S.lesson,u=S.user,ei=S.exIdx;
+  var ex=lesson.ex[ei];
+  if(ei>=lesson.ex.length){
+    // Done
+    var sc=S.exScore||0;
+    var pct=Math.round(sc/lesson.ex.length*100);
+    var d=ce('div',{style:{padding:'30px 18px',display:'flex',flexDirection:'column',alignItems:'center',gap:'13px',textAlign:'center',background:'#f8fafc',minHeight:'100vh'}});
+    d.innerHTML='<div style="font-size:58px">'+(pct===100?'&#127942;':pct>=80?'&#11088;':pct>=60?'&#128077;':'&#128170;')+'</div>'+
+      '<div style="font-size:24px;font-weight:900">'+sc+'/'+lesson.ex.length+'</div>'+
+      '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:16px;padding:14px 18px;max-width:290px;width:100%">'+
+        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF SAM</div>'+
+        '<div style="color:#94a3b8;font-size:12px;font-style:italic">'+(pct===100?'"PERFECT '+u.name+'! 100 percent! You are on fire!"':pct>=60?'"Well done '+u.name+'! Do the quiz to unlock the next lesson!"':'"Keep going '+u.name+'! Practice makes perfect!"')+'</div>'+
+      '</div>'+
+      '<button id="exDoneBtn" style="background:'+lesson.color+';color:#fff;border:none;border-radius:13px;padding:14px 30px;font-size:14px;font-weight:800;cursor:pointer">Retour &#127968;</button>';
+    setTimeout(function(){var b=qs('exDoneBtn');if(b)b.addEventListener('click',function(){S.screen='lmenu';render();});},50);
+    return d;
+  }
+  var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
+  d.appendChild(backBtn(function(){S.screen='lmenu';render();}));
+  d.innerHTML+='<div style="margin:12px 0 14px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:#94a3b8">Exercice '+(ei+1)+'/'+lesson.ex.length+'</span><span style="font-size:11px;color:#94a3b8">&#9989; '+(S.exScore||0)+' bons</span></div>'+
+    '<div style="height:4px;background:#e2e8f0;border-radius:99px"><div style="height:100%;width:'+(ei/lesson.ex.length*100)+'%;background:'+lesson.color+';border-radius:99px;transition:width 0.3s"></div></div></div>'+
+    '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:9px">'+
+      '<div style="font-size:22px">&#127897;</div>'+
+      '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">SAM:</div>'+
+      '<div style="color:#94a3b8;font-size:12px;font-style:italic">"'+ex.q+'"</div></div>'+
+    '</div>';
+
+  if(ex.t==='fill'){
+    var fillQ=ex.q.replace('___','<span id="fillSlot" style="border-bottom:3px solid '+lesson.color+';padding:1px 8px;font-style:italic;color:'+(S.exChk?(S.exCor?'#10b981':'#ef4444'):'#111')+'">'+(S.exChk?(S.exCor||S.exInp||'___'):(S.exInp||'___'))+'</span>');
+    d.innerHTML+='<div style="background:#f1f5f9;border-radius:13px;padding:16px;text-align:center;margin-bottom:9px"><div style="font-size:17px;font-weight:800;color:#111;line-height:1.6">'+fillQ+'</div><div style="font-size:10px;color:#cbd5e1;margin-top:5px">Phonetique: ['+ex.h+']</div></div>';
+    if(!S.exChk){
+      var inp=ce('input',{id:'exFillInp',placeholder:'Tape ta reponse... ['+ex.h+']',style:{width:'100%',padding:'12px 14px',fontSize:'15px',fontWeight:'700',borderRadius:'12px',border:'2px solid #e2e8f0',outline:'none',textAlign:'center',color:'#111',boxSizing:'border-box',marginBottom:'9px',display:'block'}});
+      inp.value=S.exInp||'';
+      inp.addEventListener('input',function(){S.exInp=this.value;});
+      inp.addEventListener('keydown',function(e){if(e.key==='Enter')doExCheck();});
+      d.appendChild(inp);
+    }
+  } else if(ex.t==='trans'){
+    d.innerHTML+='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:13px;padding:16px;text-align:center;margin-bottom:9px">'+
+      '<div style="font-size:10px;color:#475569;margin-bottom:5px;letter-spacing:1px">TRADUIS EN AMERICAIN</div>'+
+      '<div style="font-size:18px;font-weight:900;color:#fff">'+ex.q+'</div>'+
+      '<div style="font-size:10px;color:#334155;margin-top:3px">['+ex.h+']</div></div>';
+    if(!S.exChk){
+      var inp=ce('input',{id:'exTransInp',placeholder:'Ta traduction... ['+ex.h+']',style:{width:'100%',padding:'12px 14px',fontSize:'14px',fontWeight:'700',borderRadius:'12px',border:'2px solid #e2e8f0',outline:'none',textAlign:'center',color:'#111',boxSizing:'border-box',marginBottom:'9px',display:'block'}});
+      inp.value=S.exInp||'';
+      inp.addEventListener('input',function(){S.exInp=this.value;});
+      inp.addEventListener('keydown',function(e){if(e.key==='Enter')doExCheck();});
+      d.appendChild(inp);
+    }
+  } else if(ex.t==='pick'){
+    var opts=ce('div',{style:{display:'flex',flexDirection:'column',gap:'8px',marginBottom:'13px'}});
+    ex.o.forEach(function(opt){
+      var isA=opt===ex.a,isCh=opt===S.exCho;
+      var btn=ce('button',{style:{background:S.exChk?(isA?'#10b981':isCh?'#ef4444':'#f1f5f9'):(isCh?'#111':'#fff'),color:S.exChk&&(isA||isCh)?'#fff':isCh?'#fff':'#111',border:'2px solid '+(S.exChk?(isA?'#10b981':isCh?'#ef4444':'#e2e8f0'):(isCh?'#111':'#e2e8f0')),borderRadius:'12px',padding:'12px 14px',fontSize:'13px',fontWeight:'700',cursor:S.exChk?'default':'pointer',textAlign:'center',width:'100%'},onclick:function(){if(!S.exChk){S.exCho=opt;render();}}},opt);
+      opts.appendChild(btn);
+    });
+    d.appendChild(opts);
+  }
+
+  if(S.exChk){
+    d.innerHTML+='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:12px;padding:11px 13px;margin-bottom:9px;display:flex;gap:9px">'+
+      '<div style="font-size:18px">&#127897;</div>'+
+      '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">SAM CORRIGE:</div>'+
+      '<div style="color:'+(S.exCor?'#10b981':'#f59e0b')+';font-size:12px;font-weight:700">'+(S.exCor?'Perfect! Exactly right!':'La bonne reponse: "'+ex.a+'"')+'</div></div>'+
+    '</div>';
+    var nb=ce('button',{style:{width:'100%',background:S.exCor?'#10b981':lesson.color,color:'#fff',border:'none',borderRadius:'12px',padding:'13px',fontSize:'14px',fontWeight:'800',cursor:'pointer'},onclick:function(){
+      S.exIdx++;S.exInp='';S.exCho=null;S.exChk=false;S.exCor=false;render();
+    }},ei+1>=lesson.ex.length?'Voir resultats &#127937;':'Exercice suivant &#8594;');
+    d.appendChild(nb);
+  } else {
+    var vb=ce('button',{id:'valBtn',style:{width:'100%',background:(ex.t==='pick'?S.exCho:S.exInp)?lesson.color:'#e2e8f0',color:(ex.t==='pick'?S.exCho:S.exInp)?'#fff':'#94a3b8',border:'none',borderRadius:'12px',padding:'13px',fontSize:'14px',fontWeight:'800',cursor:(ex.t==='pick'?S.exCho:S.exInp)?'pointer':'not-allowed'},onclick:doExCheck},'Valider &#10003;');
+    d.appendChild(vb);
+  }
+  return d;
+}
+
+function doExCheck(){
+  var lesson=S.lesson,ei=S.exIdx,ex=lesson.ex[ei];
+  var ans=ex.t==='pick'?S.exCho:(S.exInp||'').trim().toLowerCase();
+  var ok=ans===ex.a.toLowerCase()||ans.replace(/[!?,.]/g,'')===ex.a.toLowerCase().replace(/[!?,.]/g,'');
+  S.exCor=ok;S.exChk=true;tone(ok);
+  if(ok){S.exScore=(S.exScore||0)+1;}
+  render();
+}
+
+function renderQuiz(){
+  var lesson=S.lesson,u=S.user,qi=S.qIdx;
+  if(S.qDone){
+    var pct=Math.round(S.qScore/lesson.words.length*100);
+    var ok=pct>=60;
+    var d=ce('div',{style:{padding:'26px',display:'flex',flexDirection:'column',alignItems:'center',gap:'13px',textAlign:'center',background:'#f8fafc',minHeight:'100vh'}});
+    d.innerHTML='<div style="font-size:60px">'+(pct===100?'&#127942;':pct>=80?'&#11088;':ok?'&#128077;':'&#128170;')+'</div>'+
+      '<div style="font-size:24px;font-weight:900">'+S.qScore+'/'+lesson.words.length+'</div>'+
+      '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:16px;padding:14px 18px;max-width:290px;width:100%">'+
+        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF SAM</div>'+
+        '<div style="color:#94a3b8;font-size:12px;font-style:italic">'+(pct===100?'"PERFECT '+u.name+'! LEGENDARY!"':ok?'"Well done '+u.name+'! Lesson '+lesson.id+' done! Next one unlocked!"':'"Keep going '+u.name+'! You need 60 percent to pass. I believe in you!"')+'</div>'+
+      '</div>';
+    if(ok){
+      var xpBtn=ce('button',{style:{background:lesson.color,color:'#fff',border:'none',borderRadius:'13px',padding:'14px 30px',fontSize:'14px',fontWeight:'800',cursor:'pointer'},onclick:function(){
+        if(!S.done.includes(lesson.id))S.done.push(lesson.id);
+        S.user.xp+=lesson.xp;
+        showXPPopup(lesson.xp);
+        S.screen='home';render();
+      }},'+'+lesson.xp+' XP - Suivante &#128640;');
+      d.appendChild(xpBtn);
+    } else {
+      var retryBtn=ce('button',{style:{background:'#111',color:'#fff',border:'none',borderRadius:'13px',padding:'14px 30px',fontSize:'14px',fontWeight:'800',cursor:'pointer'},onclick:function(){S.qIdx=0;S.qScore=0;S.qCho=null;S.qDone=false;render();}},'Reessayer &#128260;');
+      d.appendChild(retryBtn);
+    }
+    var backB=ce('button',{style:{background:'none',border:'none',color:'#94a3b8',cursor:'pointer',fontSize:'13px'},onclick:function(){S.screen='lmenu';render();}},'Retour');
+    d.appendChild(backB);
+    return d;
+  }
+  var w=lesson.words[qi];
+  var opts=shuffle([w.en,...shuffle(lesson.words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en)]).slice(0,4);
+  var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
+  d.appendChild(backBtn(function(){S.screen='lmenu';render();}));
+  d.innerHTML+='<div style="margin:11px 0 13px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:#94a3b8">Quiz final</span><span style="font-size:11px;color:#94a3b8">'+(qi+1)+'/'+lesson.words.length+'</span></div>'+
+    '<div style="height:4px;background:#e2e8f0;border-radius:99px"><div style="height:100%;width:'+(qi/lesson.words.length*100)+'%;background:'+lesson.color+';border-radius:99px;transition:width 0.3s"></div></div></div>'+
+    '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:20px;padding:20px;text-align:center;margin-bottom:16px">'+
+      '<div style="font-size:10px;color:#475569;margin-bottom:5px;letter-spacing:1px">TRADUIS EN AMERICAIN</div>'+
+      '<div style="font-size:20px;font-weight:900;color:#fff">'+w.fr+'</div>'+
+    '</div>';
+  var grid=ce('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}});
+  opts.forEach(function(c){
+    var ok=c===w.en;
+    var btn=ce('button',{style:{background:S.qCho?(ok?'#10b981':c===S.qCho?'#ef4444':'#f1f5f9'):'#fff',color:S.qCho&&(ok||c===S.qCho)?'#fff':'#111',border:'2px solid '+(S.qCho?(ok?'#10b981':c===S.qCho?'#ef4444':'#e2e8f0'):'#e2e8f0'),borderRadius:'13px',padding:'13px 7px',fontSize:'12px',fontWeight:'700',cursor:S.qCho?'default':'pointer',textAlign:'center',lineHeight:'1.3'},onclick:function(){
+      if(S.qCho)return;
+      S.qCho=c;tone(ok);
+      if(ok){S.qScore++;speak(w.en,u.level.speed);}
+      render();
+      setTimeout(function(){
+        if(qi+1>=lesson.words.length)S.qDone=true;
+        else{S.qIdx++;S.qCho=null;}
+        render();
+      },1000);
+    }},c);
+    grid.appendChild(btn);
+  });
+  d.appendChild(grid);
+  return d;
+}
+
+function showXPPopup(xp){
+  var pop=ce('div',{style:{position:'fixed',inset:'0',background:'rgba(0,0,0,0.65)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:'9999'}});
+  pop.innerHTML='<div style="background:linear-gradient(135deg,#080810,#0f172a);border:1px solid rgba(239,68,68,0.3);border-radius:26px;padding:40px 48px;text-align:center;animation:pop 0.4s ease">'+
+    '<div style="font-size:52px">&#11088;</div>'+
+    '<div style="font-size:32px;font-weight:900;color:#fff;margin:7px 0 3px">+'+xp+' XP</div>'+
+    '<div style="color:#ef4444;font-size:13px;font-weight:700">Lecon validee!</div>'+
+    '<div style="color:#475569;font-size:11px;margin-top:3px;font-style:italic">Sam est fier de toi</div>'+
+  '</div>';
+  document.body.appendChild(pop);
+  setTimeout(function(){document.body.removeChild(pop);},2500);
+}
+
+// ============================================================
+// START
+// ============================================================
+render();
+</script>
+</body>
 </html>
