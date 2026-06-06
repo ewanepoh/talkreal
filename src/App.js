@@ -9,28 +9,28 @@ const CODES = {
 
 // LEVELS - 6 levels including Accent Parfait
 const LEVELS = [
-  {id:'zero',      emoji:'🥚', label:'Niveau Zero',      desc:'Je ne connais aucun mot anglais',                color:'#94a3b8', speed:0.62, reps:4},
-  {id:'debutant',  emoji:'🌱', label:'Debutant',          desc:'Je connais quelques mots (hi, yes, no...)',      color:'#10b981', speed:0.72, reps:3},
+  {id:'zero',      emoji:'🥚', label:'Niveau Zero',      desc:"Je ne connais aucun mot anglais",                color:'#94a3b8', speed:0.62, reps:4},
+  {id:'debutant',  emoji:'🌱', label:'Debutant',          desc:"Je connais quelques mots (hi, yes, no...)",      color:'#10b981', speed:0.72, reps:3},
   {id:'scolaire',  emoji:'📚', label:'Anglais Scolaire',  desc:"Appris a l'ecole mais pas l'accent US",          color:'#3b82f6', speed:0.80, reps:2},
-  {id:'inter',     emoji:'🚀', label:'Intermediaire',     desc:"Je comprends mais je bloque a l'oral",           color:'#8b5cf6', speed:0.87, reps:2},
-  {id:'avance',    emoji:'🎯', label:'Avance',            desc:'Je parle mais je veux sonner vraiment americain', color:'#f59e0b', speed:0.93, reps:1},
-  {id:'accent',    emoji:'⭐', label:'Accent Parfait',    desc:'Je veux etre indiscernable d'un natif americain',color:'#ef4444', speed:0.98, reps:1},
+  {id:'inter',     emoji:'🚀', label:'Intermediaire',     desc:"Je comprends mais je bloque a l oral",           color:'#8b5cf6', speed:0.87, reps:2},
+  {id:'avance',    emoji:'🎯', label:'Avance',            desc:"Je parle mais je veux sonner vraiment americain", color:'#f59e0b', speed:0.93, reps:1},
+  {id:'accent',    emoji:'*', label:'Accent Parfait',    desc:"Je veux etre indiscernable d un natif americain",color:'#ef4444', speed:0.98, reps:1},
 ];
 
 // BADGES
 const ALL_BADGES = [
-  {id:'first',    emoji:'🎉', label:'Premiers Pas',    desc:'Terminer ta premiere lecon',           color:'#10b981'},
-  {id:'streak3',  emoji:'🔥', label:'En Feu',          desc:'3 jours consecutifs',                  color:'#f97316'},
-  {id:'streak7',  emoji:'💎', label:'Semaine Complete', desc:'7 jours consecutifs',                 color:'#6366f1'},
-  {id:'xp100',    emoji:'⚡', label:'Energique',       desc:'Atteindre 100 XP',                    color:'#eab308'},
-  {id:'xp500',    emoji:'🏆', label:'Champion',        desc:'Atteindre 500 XP',                    color:'#f59e0b'},
-  {id:'xp1000',   emoji:'👑', label:'Royaute',         desc:'Atteindre 1000 XP',                   color:'#ec4899'},
-  {id:'lesson5',  emoji:'📖', label:'Studieux',        desc:'Completer 5 lecons',                   color:'#3b82f6'},
-  {id:'lesson10', emoji:'🎓', label:'Mi-Parcours',     desc:'Completer 10 lecons',                  color:'#8b5cf6'},
-  {id:'lesson20', emoji:'🌟', label:'Maitre',          desc:'Completer les 20 lecons',              color:'#ef4444'},
-  {id:'perfect',  emoji:'💯', label:'Parfait',         desc:'100% a un quiz',                       color:'#10b981'},
-  {id:'mirror10', emoji:'🎙', label:'Orateur',         desc:'10 sessions Mode Miroir',              color:'#14b8a6'},
-  {id:'speed',    emoji:'⚡', label:'Rapide',          desc:'Finir un quiz en moins de 30 secondes', color:'#f59e0b'},
+  {id:'first',    emoji:'🎉', label:'Premiers Pas',    desc:"Terminer ta premiere lecon",           color:'#10b981'},
+  {id:'streak3',  emoji:'🔥', label:'En Feu',          desc:"3 jours consecutifs",                  color:'#f97316'},
+  {id:'streak7',  emoji:'💎', label:'Semaine Complete', desc:"7 jours consecutifs",                 color:'#6366f1'},
+  {id:'xp100',    emoji:'⚡', label:'Energique',       desc:"Atteindre 100 XP",                    color:'#eab308'},
+  {id:'xp500',    emoji:'🏆', label:'Champion',        desc:"Atteindre 500 XP",                    color:'#f59e0b'},
+  {id:'xp1000',   emoji:'👑', label:'Royaute',         desc:"Atteindre 1000 XP",                   color:'#ec4899'},
+  {id:'lesson5',  emoji:'📖', label:'Studieux',        desc:"Completer 5 lecons",                   color:'#3b82f6'},
+  {id:'lesson10', emoji:'🎓', label:'Mi-Parcours',     desc:"Completer 10 lecons",                  color:'#8b5cf6'},
+  {id:'lesson20', emoji:'🌟', label:'Maitre',          desc:"Completer les 20 lecons",              color:'#ef4444'},
+  {id:'perfect',  emoji:'💯', label:'Parfait',         desc:"100% a un quiz",                       color:'#10b981'},
+  {id:'mirror10', emoji:'🎙', label:'Orateur',         desc:"10 sessions Mode Miroir",              color:'#14b8a6'},
+  {id:'speed',    emoji:'⚡', label:'Rapide',          desc:"Finir un quiz en moins de 30 secondes", color:'#f59e0b'},
 ];
 
 // LEADERBOARD (mock friends)
@@ -381,7 +381,7 @@ const LESSONS = [
   },
   // THEME 10: ACCENT PARFAIT
   {
-    id:19, theme:'Accent Parfait', emoji:'⭐', title:'Sonner Comme un Natif', color:'#ef4444', xp:50,
+    id:19, theme:'Accent Parfait', emoji:'*', title:'Sonner Comme un Natif', color:'#ef4444', xp:50,
     samSays:"This is elite level! The last 5% that separates good English from PERFECT English. Pay attention!",
     words:[
       {fr:"Contractions fluides",    en:"Gonna, Wanna, Gotta",     ph:"gona wona gota",      tip:"Going to, want to, got to — contracte TOUJOURS"},
@@ -702,9 +702,9 @@ function Home({user,completed,onSelect,onTab}){
               <div>
                 <div style={{color:'#ef4444',fontSize:'10px',fontWeight:700,marginBottom:'2px'}}>PROF SAM</div>
                 <div style={{color:'#64748b',fontSize:'12px',lineHeight:1.5}}>
-                  {completed.length===0?'Hey '+user.name+'! Ready for lesson 1? Let\'s GO!':
+                  {completed.length===0?'Hey '+user.name+'! Ready for lesson 1? Lets GO!':
                    completed.length<10?'Great progress '+user.name+'! Keep it up!':
-                   completed.length<20?user.name+', you\'re halfway! I\'m proud of you!':
+                   completed.length<20?user.name+', you are halfway! Im proud of you!':
                    'LEGENDARY '+user.name+'! You completed ALL 20 lessons!'}
                 </div>
               </div>
@@ -878,10 +878,10 @@ function LessonMenu({lesson,user,onMode,onBack}){
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
         {[
-          {key:'learn',    emoji:'🎭', label:'Apprendre avec Sam',    desc:'Decouvre les phrases avec leur contexte americain'},
-          {key:'mirror',   emoji:'🎙️', label:'Repete apres Sam',      desc:'Tu parles, Sam corrige ton accent', hot:true},
-          {key:'exercises',emoji:'✏️', label:'Exercices',             desc:'3 types : remplir, traduire, choix multiple', hot:true},
-          {key:'quiz',     emoji:'🎯', label:'Quiz — Gagne tes XP',   desc:'Valide la lecon et debloque la suivante'},
+          {key:'learn',    emoji:'🎭', label:'Apprendre avec Sam',    desc:"Decouvre les phrases avec leur contexte americain"},
+          {key:'mirror',   emoji:'🎙️', label:'Repete apres Sam',      desc:"Tu parles, Sam corrige ton accent", hot:true},
+          {key:'exercises',emoji:'✏️', label:'Exercices',             desc:"3 types : remplir, traduire, choix multiple", hot:true},
+          {key:'quiz',     emoji:'🎯', label:'Quiz — Gagne tes XP',   desc:"Valide la lecon et debloque la suivante"},
         ].map(m=>(
           <button key={m.key} onClick={()=>onMode(m.key)}
             style={{background:m.hot?lesson.color+'08':'#fff',border:m.hot?'2px solid '+lesson.color:'2px solid #e2e8f0',borderRadius:'16px',padding:'14px 16px',display:'flex',alignItems:'center',gap:'12px',cursor:'pointer',textAlign:'left',boxShadow:m.hot?'0 4px 14px '+lesson.color+'18':'0 2px 6px rgba(0,0,0,0.04)'}}>
