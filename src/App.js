@@ -57,6 +57,7 @@ function speakText(text, speed) {
 }
 
 async function askSam(messages, user) {
+  // eslint-disable-next-line no-unused-vars
   const key = process.env.REACT_APP_ANTHROPIC_KEY;
   const system = 'Tu es Prof Sam, professeur d\'anglais américain chaleureux et motivant. Tu parles a ' + user.name + ', ' + user.age + ' ans, niveau ' + user.level.label + '.\n\nREGLES:\n- Alterne anglais ET francais dans chaque reponse\n- Commence par une phrase en anglais, explique en francais\n- Utilise le prenom ' + user.name + ' souvent\n- Corrige les erreurs positivement\n- Donne la phonetique entre crochets\n- Une question ou exercice a la fin\n- Repenses courtes et percutantes (4-5 lignes max)\n- Si message en francais: traduis en anglais americain et explique\n- Si message en anglais: corrige si besoin et encourage\n- Niveau: ' + user.level.label;
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -207,8 +208,8 @@ function Chat({ user }) {
   const welcome = 'Bienvenue ' + user.name + ' !\n\nJe suis Sam, ton coach americain. Je parle anglais ET francais.\n\nNiveau: ' + user.level.emoji + ' ' + user.level.label + '\n\nEcris-moi en francais ou en anglais — je corrige et j\'explique tout !\n\nPour commencer: essaie de dire "Bonjour" en americain !';
 
   useEffect(() => {
-    setMessages([{ role: 'assistant', content: welcome, id: Date.now() }]);
-  }, []);
+    setMessages([{ role: 'assistant', content: welcome, id: Date.now() }]); // eslint-disable-line
+  }, []); // eslint-disable-line
 
   useEffect(() => {
     bottomRef.current && bottomRef.current.scrollIntoView({ behavior: 'smooth' });
