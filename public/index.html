@@ -746,7 +746,7 @@ function backBtn(cb){
 function renderLMenu(){
   var lesson=S.lesson,u=S.user;
   var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
-  d.appendChild(backBtn(function(){S.screen='home';render();}));
+  d.innerHTML='<button onclick="S.screen=\'home\';render();" style="background:none;border:none;color:#94a3b8;font-size:14px;cursor:pointer;padding:0;margin-bottom:4px">&#8592; Retour</button>';
   d.innerHTML+=
     '<div style="text-align:center;margin:16px 0 20px">'+
       '<div style="width:70px;height:70px;border-radius:20px;background:'+lesson.color+'15;font-size:32px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">&#127897;</div>'+
@@ -791,14 +791,23 @@ function renderLMenu(){
 function renderLearn(){
   var lesson=S.lesson,u=S.user,wi=S.wiIdx;
   var w=lesson.words[wi];
+  // Auto-speak when revealed
+  if(S.wiRev && !S.wiSpoken){
+    S.wiSpoken=true;
+    setTimeout(function(){
+      var c=0;
+      var nx=function(){c++;speak(w.en,u.level.speed,function(){if(c<u.level.reps)setTimeout(nx,500);});};
+      nx();
+    },300);
+  }
   var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
-  d.appendChild(backBtn(function(){S.screen='lmenu';render();}));
+  d.innerHTML='<button onclick="S.screen=\'lmenu\';S.wiRev=false;S.wiSpoken=false;render();" style="background:none;border:none;color:#94a3b8;font-size:14px;cursor:pointer;padding:0;margin-bottom:4px">&#8592; Retour</button>';
   d.innerHTML+='<div style="text-align:center;margin-bottom:10px;font-size:11px;color:#94a3b8">Phrase '+(wi+1)+'/'+lesson.words.length+'</div>'+
     '<div style="background:#fff;border-radius:18px;padding:20px;border:2px solid #f1f5f9;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,0.05)">'+
       '<div style="font-size:10px;color:#cbd5e1;margin-bottom:3px;font-weight:700;letter-spacing:1px">FRANCAIS</div>'+
       '<div style="font-size:20px;font-weight:900;color:#111;margin-bottom:14px">'+w.fr+'</div>'+
       (!S.wiRev?
-        '<button id="revBtn" style="width:100%;background:#f8fafc;border:none;border-radius:11px;padding:13px;font-size:13px;color:#94a3b8;cursor:pointer;font-weight:700">Voir la traduction de Sam &#8594;</button>':
+        '<button id="revBtn" style="width:100%;background:linear-gradient(135deg,#ef444415,#ec489910);border:1.5px solid #ef4444;border-radius:11px;padding:13px;font-size:13px;color:#ef4444;cursor:pointer;font-weight:700">&#127897; Sam me dit la traduction &#8594;</button>':
         '<div>'+
           '<div style="font-size:10px;color:#cbd5e1;margin-bottom:3px;font-weight:700;letter-spacing:1px">SAM DIT...</div>'+
           '<div style="font-size:22px;font-weight:900;color:#111;margin-bottom:3px">'+w.en+'</div>'+
@@ -817,9 +826,10 @@ function renderLearn(){
   nav.appendChild(prev);nav.appendChild(next);
   d.appendChild(nav);
   setTimeout(function(){
-    var r=qs('revBtn');if(r)r.addEventListener('click',function(){S.wiRev=true;render();});
+    var r=qs('revBtn');if(r)r.addEventListener('click',function(){S.wiRev=true;S.wiSpoken=false;render();});
     var l=qs('listenBtn');
     if(l)l.addEventListener('click',function(){
+      window.speechSynthesis.cancel();
       var c=0;var nx=function(){c++;speak(w.en,u.level.speed,function(){if(c<u.level.reps)setTimeout(nx,500);});};nx();
     });
   },50);
@@ -831,7 +841,7 @@ function renderMirror(){
   var w=lesson.words[wi];
   var phase=S.mirPhase,res=S.mirRes;
   var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
-  d.appendChild(backBtn(function(){S.screen='lmenu';render();}));
+  d.innerHTML='<button onclick="S.screen=\'lmenu\';S.mirPhase=\'ready\';S.mirRes=null;S.mirAtt=0;S.mirPassed=[];render();" style="background:none;border:none;color:#94a3b8;font-size:14px;cursor:pointer;padding:0;margin-bottom:4px">&#8592; Retour</button>';
   if(phase==='done'){
     d.innerHTML+='<div style="text-align:center;padding:30px 0">'+
       '<div style="font-size:66px">&#127897;</div>'+
@@ -939,7 +949,7 @@ function renderExos(){
     return d;
   }
   var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
-  d.appendChild(backBtn(function(){S.screen='lmenu';render();}));
+  d.innerHTML='<button onclick="S.screen=\'lmenu\';S.exIdx=0;S.exScore=0;S.exInp=\'\';S.exCho=null;S.exChk=false;render();" style="background:none;border:none;color:#94a3b8;font-size:14px;cursor:pointer;padding:0;margin-bottom:4px">&#8592; Retour</button>';
   d.innerHTML+='<div style="margin:12px 0 14px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:#94a3b8">Exercice '+(ei+1)+'/'+lesson.ex.length+'</span><span style="font-size:11px;color:#94a3b8">&#9989; '+(S.exScore||0)+' bons</span></div>'+
     '<div style="height:4px;background:#e2e8f0;border-radius:99px"><div style="height:100%;width:'+(ei/lesson.ex.length*100)+'%;background:'+lesson.color+';border-radius:99px;transition:width 0.3s"></div></div></div>'+
     '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:9px">'+
@@ -1037,7 +1047,7 @@ function renderQuiz(){
   var w=lesson.words[qi];
   var opts=shuffle([w.en,...shuffle(lesson.words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en)]).slice(0,4);
   var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
-  d.appendChild(backBtn(function(){S.screen='lmenu';render();}));
+  d.innerHTML='<button onclick="S.screen=\'lmenu\';S.qIdx=0;S.qScore=0;S.qCho=null;S.qDone=false;render();" style="background:none;border:none;color:#94a3b8;font-size:14px;cursor:pointer;padding:0;margin-bottom:4px">&#8592; Retour</button>';
   d.innerHTML+='<div style="margin:11px 0 13px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:#94a3b8">Quiz final</span><span style="font-size:11px;color:#94a3b8">'+(qi+1)+'/'+lesson.words.length+'</span></div>'+
     '<div style="height:4px;background:#e2e8f0;border-radius:99px"><div style="height:100%;width:'+(qi/lesson.words.length*100)+'%;background:'+lesson.color+';border-radius:99px;transition:width 0.3s"></div></div></div>'+
     '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:20px;padding:20px;text-align:center;margin-bottom:16px">'+
