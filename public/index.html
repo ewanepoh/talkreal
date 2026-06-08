@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>TalkReal - Prof Sam</title>
+<title>TalkReal - Prof Jessica</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,'Segoe UI',sans-serif;background:#f8fafc;min-height:100vh}
@@ -444,7 +444,11 @@ function speak(text,speed,cb){
   if(!window.speechSynthesis){if(cb)cb();return;}
   window.speechSynthesis.cancel();
   var u=new SpeechSynthesisUtterance(text);
-  u.lang='en-US';u.rate=speed||0.85;
+  u.lang='en-US';u.rate=speed||0.85;u.pitch=1.1;
+  // Try to get a female voice
+  var voices=window.speechSynthesis.getVoices();
+  var female=voices.find(function(v){return v.lang==='en-US'&&(v.name.includes('Samantha')||v.name.includes('Karen')||v.name.includes('Victoria')||v.name.includes('Fiona')||v.name.toLowerCase().includes('female'));});
+  if(female)u.voice=female;
   if(cb)u.onend=cb;
   window.speechSynthesis.speak(u);
 }
@@ -453,21 +457,88 @@ function tone(ok){
   try{
     var ctx=new(window.AudioContext||window.webkitAudioContext)();
     if(ok){
-      [520,780,1040].forEach((f,i)=>{
+      // APPLAUDISSEMENTS - crowd noise simulation
+      // Multiple clap bursts
+      for(var clap=0;clap<6;clap++){
+        (function(ci){
+          var bufSize=ctx.sampleRate*0.08;
+          var buf=ctx.createBuffer(1,bufSize,ctx.sampleRate);
+          var data=buf.getChannelData(0);
+          for(var i=0;i<bufSize;i++){
+            // white noise shaped like a clap
+            var env=Math.exp(-i/(bufSize*0.15));
+            data[i]=(Math.random()*2-1)*env*0.6;
+          }
+          var src=ctx.createBufferSource();
+          var g=ctx.createGain();
+          var filter=ctx.createBiquadFilter();
+          filter.type='bandpass';
+          filter.frequency.value=1200+Math.random()*800;
+          filter.Q.value=0.8;
+          src.buffer=buf;
+          src.connect(filter);filter.connect(g);g.connect(ctx.destination);
+          var delay=ci*0.13+Math.random()*0.04;
+          g.gain.setValueAtTime(0,ctx.currentTime+delay);
+          g.gain.linearRampToValueAtTime(0.5+Math.random()*0.3,ctx.currentTime+delay+0.01);
+          g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+0.18);
+          src.start(ctx.currentTime+delay);
+          src.stop(ctx.currentTime+delay+0.2);
+        })(clap);
+      }
+      // Crowd cheering - rising noise
+      var cheerBuf=ctx.createBuffer(1,ctx.sampleRate*1.2,ctx.sampleRate);
+      var cd=cheerBuf.getChannelData(0);
+      for(var i=0;i<cd.length;i++){
+        var t=i/ctx.sampleRate;
+        var env=t<0.3?t/0.3:Math.exp(-(t-0.3)*2);
+        cd[i]=(Math.random()*2-1)*env*0.4;
+      }
+      var cheer=ctx.createBufferSource();
+      var cf=ctx.createBiquadFilter();cf.type='bandpass';cf.frequency.value=800;cf.Q.value=0.5;
+      var cg=ctx.createGain();cg.gain.value=0.6;
+      cheer.buffer=cheerBuf;
+      cheer.connect(cf);cf.connect(cg);cg.connect(ctx.destination);
+      cheer.start(ctx.currentTime+0.1);
+      // Victory melody on top
+      [523,659,784,1047].forEach(function(f,i){
         var o=ctx.createOscillator(),g=ctx.createGain();
         o.connect(g);g.connect(ctx.destination);
-        o.frequency.value=f;g.gain.setValueAtTime(0.2,ctx.currentTime+i*0.12);
-        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.12+0.3);
-        o.start(ctx.currentTime+i*0.12);o.stop(ctx.currentTime+i*0.12+0.35);
+        o.frequency.value=f;o.type='sine';
+        g.gain.setValueAtTime(0,ctx.currentTime+0.5+i*0.1);
+        g.gain.linearRampToValueAtTime(0.15,ctx.currentTime+0.5+i*0.1+0.04);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5+i*0.1+0.25);
+        o.start(ctx.currentTime+0.5+i*0.1);
+        o.stop(ctx.currentTime+0.5+i*0.1+0.3);
       });
     }else{
-      var o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.frequency.setValueAtTime(280,ctx.currentTime);
-      o.frequency.setValueAtTime(200,ctx.currentTime+0.15);
-      g.gain.setValueAtTime(0.2,ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
-      o.start();o.stop(ctx.currentTime+0.4);
+      // CROWD DISAPPOINTMENT - "Awww" sound
+      // Descending crowd groan
+      var awBuf=ctx.createBuffer(1,ctx.sampleRate*0.8,ctx.sampleRate);
+      var ad=awBuf.getChannelData(0);
+      for(var i=0;i<ad.length;i++){
+        var t=i/ctx.sampleRate;
+        var env=t<0.1?t/0.1:Math.exp(-(t-0.1)*3);
+        // modulate with descending freq for "awww" effect
+        var mod=Math.sin(2*Math.PI*(300-t*200)*t);
+        ad[i]=(Math.random()*0.3+mod*0.5)*env*0.5;
+      }
+      var aw=ctx.createBufferSource();
+      var af=ctx.createBiquadFilter();af.type='lowpass';af.frequency.value=600;
+      var ag=ctx.createGain();ag.gain.value=0.5;
+      aw.buffer=awBuf;
+      aw.connect(af);af.connect(ag);ag.connect(ctx.destination);
+      aw.start(ctx.currentTime);
+      // Descending sad notes
+      [392,349,330,294].forEach(function(f,i){
+        var o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.frequency.value=f;o.type='sine';
+        g.gain.setValueAtTime(0,ctx.currentTime+i*0.12);
+        g.gain.linearRampToValueAtTime(0.12,ctx.currentTime+i*0.12+0.04);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.12+0.28);
+        o.start(ctx.currentTime+i*0.12);
+        o.stop(ctx.currentTime+i*0.12+0.32);
+      });
     }
   }catch(e){}
 }
@@ -512,7 +583,7 @@ function renderAccess(){
   var d=ce('div',{style:{minHeight:'100vh',background:'linear-gradient(135deg,#0a0a14,#0f172a)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px',gap:'14px',textAlign:'center'}});
   d.innerHTML='<div style="font-size:68px;line-height:1">&#127897;</div>'+
     '<h1 style="color:#fff;font-size:44px;font-weight:900;letter-spacing:-2px;margin:0">TalkReal</h1>'+
-    '<p style="color:#ef4444;font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin:0">AVEC PROF SAM</p>'+
+    '<p style="color:#ef4444;font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin:0">AVEC PROF JESSICA</p>'+
     '<p style="color:#334155;font-size:13px;line-height:1.7;margin:4px 0 10px">Ton coach americain personnel.<br>Il t\'apprend. Tu repetes. Tu parles.</p>';
   var box=ce('div',{style:{background:'rgba(255,255,255,0.03)',borderRadius:'24px',padding:'26px 20px',width:'100%',maxWidth:'340px',border:'1px solid rgba(255,255,255,0.08)'}});
   box.innerHTML='<p style="color:#475569;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Code d\'acces beta</p>';
@@ -540,7 +611,7 @@ function renderOnboard(){
   if(step===0){
     d.innerHTML='<div style="font-size:50px">&#128075;</div>'+
       '<h2 style="font-size:24px;font-weight:900;color:#111;margin:0">Bienvenue sur TalkReal!</h2>'+
-      '<p style="color:#94a3b8;font-size:14px;margin:0">2 infos et tu rencontres Prof Sam</p>';
+      '<p style="color:#94a3b8;font-size:14px;margin:0">2 infos et tu rencontres Prof Jessica</p>';
     var ni=ce('input',{id:'nameInp',placeholder:'Ton prenom...',style:{width:'100%',maxWidth:'300px',padding:'14px 18px',fontSize:'17px',fontWeight:'700',borderRadius:'14px',border:'2px solid #e2e8f0',outline:'none',textAlign:'center',color:'#111'}});
     var ai=ce('input',{id:'ageInp',placeholder:'Ton age...',type:'number',style:{width:'150px',padding:'14px 18px',fontSize:'17px',fontWeight:'700',borderRadius:'14px',border:'2px solid #e2e8f0',outline:'none',textAlign:'center',color:'#111'}});
     ai.setAttribute('min','10');ai.setAttribute('max','99');
@@ -569,8 +640,8 @@ function renderOnboard(){
     d.innerHTML='<div style="font-size:74px;line-height:1;animation:pop 0.5s ease">&#127897;</div>'+
       '<h2 style="color:#fff;font-size:26px;font-weight:900;margin:0;letter-spacing:-1px">Let\'s go, '+S.onName+'!</h2>'+
       '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:22px;padding:20px 24px;max-width:310px;width:100%;margin:4px 0">'+
-        '<div style="color:#ef4444;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:7px">PROF SAM</div>'+
-        '<div style="color:#fff;font-size:14px;line-height:1.7;font-style:italic">"Hey '+S.onName+'! I\'m Sam - your personal American English coach. Ready to speak like a real American? Let\'s GO!"</div>'+
+        '<div style="color:#ef4444;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:7px">PROF JESSICA</div>'+
+        '<div style="color:#fff;font-size:14px;line-height:1.7;font-style:italic">"Hey '+S.onName+'! I\'m Jessica - your personal American English coach. Ready to speak like a real American? Let\'s GO!"</div>'+
       '</div>'+
       '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:14px 18px;max-width:290px;width:100%">'+
         '<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:#475569;font-size:12px">Niveau</span><span style="color:'+S.onLevel.color+';font-size:12px;font-weight:700">'+levelIcon(S.onLevel.id)+' '+S.onLevel.label+'</span></div>'+
@@ -579,7 +650,7 @@ function renderOnboard(){
     var btn=ce('button',{style:{background:'linear-gradient(135deg,#ef4444,#ec4899)',color:'#fff',border:'none',borderRadius:'16px',padding:'17px 42px',fontSize:'17px',fontWeight:'900',cursor:'pointer',boxShadow:'0 8px 28px rgba(239,68,68,0.4)'},onclick:function(){
       S.user={name:S.onName,age:S.onAge,level:S.onLevel,xp:0,streak:1};
       S.done=[];S.screen='home';S.tab='lessons';render();
-    }},"C'est parti avec Sam! &#128640;");
+    }},"C'est parti avec Jessica! &#128640;");
     d.appendChild(btn);
   }
   return d;
@@ -618,7 +689,7 @@ function renderHome(){
   '</div>'+
   '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:10px 12px;margin-bottom:13px;display:flex;gap:9px;align-items:center">'+
     '<div style="font-size:20px">&#127897;</div>'+
-    '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF SAM</div>'+
+    '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF JESSICA</div>'+
     '<div style="color:#64748b;font-size:11px;line-height:1.4">'+(done.length===0?'Hey '+u.name+'! Ready for lesson 1? Lets GO!':done.length<10?'Great progress '+u.name+'! Keep it up!':done.length<20?u.name+', you are halfway! Im proud of you!':'LEGENDARY '+u.name+'! All 20 lessons completed!')+'</div></div>'+
   '</div>'+
   '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'+
@@ -662,13 +733,14 @@ function renderHome(){
         var isDone=done.includes(lesson.id);
         var prev=lesson.id===1||done.includes(lesson.id-1);
         var locked=!prev&&!isDone;
-        var lb=ce('button',{style:{background:locked?'#f8fafc':'#fff',border:isDone?'2px solid '+lesson.color:'2px solid #e2e8f0',borderRadius:'16px',padding:'12px 14px',display:'flex',alignItems:'center',gap:'10px',cursor:locked?'not-allowed':'pointer',opacity:locked?'0.45':'1',textAlign:'left',width:'100%',boxShadow:isDone?'0 3px 12px '+lesson.color+'18':'0 2px 5px rgba(0,0,0,0.04)'},onclick:function(){if(!locked){S.lesson=lesson;S.screen='lmenu';render();}}});
+        var isCurrent=!isDone&&prev;
+        var lb=ce('button',{style:{background:locked?'#f8fafc':isCurrent?'#fff':'#fff',border:isDone?'2px solid '+lesson.color:(isCurrent?'2px solid #111':'2px solid #e2e8f0'),borderRadius:'16px',padding:'12px 14px',display:'flex',alignItems:'center',gap:'10px',cursor:locked?'not-allowed':'pointer',opacity:locked?'0.45':'1',textAlign:'left',width:'100%',boxShadow:isDone?'0 3px 12px '+lesson.color+'18':'0 2px 5px rgba(0,0,0,0.04)'},onclick:function(){if(!locked){S.lesson=lesson;S.screen='lmenu';render();}}});
         lb.innerHTML='<div style="width:44px;height:44px;border-radius:12px;background:'+lesson.color+'15;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative">'+
           (locked?'&#128274;':'&#127897;')+(isDone?'<div style="position:absolute;bottom:-3px;right:-3px;background:'+lesson.color+';border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff">&#10003;</div>':'')+
           '</div>'+
           '<div style="flex:1"><div style="font-weight:800;font-size:13px;color:#111">'+(locked?'':lesson.id+'. ')+lesson.title+'</div>'+
           '<div style="display:flex;gap:6px;margin-top:3px"><span style="background:'+lesson.color+'15;color:'+lesson.color+';font-size:9px;font-weight:700;border-radius:5px;padding:1px 6px">+'+lesson.xp+' XP</span><span style="color:#cbd5e1;font-size:9px">5 phrases</span></div></div>'+
-          (!locked?'<div style="color:'+lesson.color+';font-size:12px">&#8594;</div>':'');
+          (isCurrent?'<div style="color:#111;font-size:14px;font-weight:900">&#8594;</div>':(isDone?'':''));
         llist.appendChild(lb);
       });
       thDiv.appendChild(llist);
@@ -681,7 +753,7 @@ function renderHome(){
   else if(tab==='badges'){
     var pd=ce('div',{style:{padding:'14px'}});
     var samBox=ce('div',{style:{background:'linear-gradient(135deg,#080810,#0f172a)',borderRadius:'14px',padding:'12px 14px',marginBottom:'14px',display:'flex',gap:'9px'}});
-    samBox.innerHTML='<div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF SAM</div><div style="color:#64748b;font-size:11px">'+earned.length+' badges gagnes sur '+BADGES.length+'. '+u.name+', you are doing amazing!</div></div>';
+    samBox.innerHTML='<div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF JESSICA</div><div style="color:#64748b;font-size:11px">'+earned.length+' badges gagnes sur '+BADGES.length+'. '+u.name+', you are doing amazing!</div></div>';
     pd.appendChild(samBox);
     pd.appendChild(ce('div',{style:{fontWeight:'800',fontSize:'15px',color:'#111',marginBottom:'10px'}},'Tes Badges &#127942;'));
     var grid=ce('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}});
@@ -701,7 +773,7 @@ function renderHome(){
 
   else if(tab==='rank'){
     var pd=ce('div',{style:{padding:'14px'}});
-    pd.innerHTML='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:9px"><div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF SAM</div><div style="color:#64748b;font-size:11px">Competition is healthy! Push yourself to the top, '+u.name+'!</div></div></div>'+
+    pd.innerHTML='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:9px"><div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF JESSICA</div><div style="color:#64748b;font-size:11px">Competition is healthy! Push yourself to the top, '+u.name+'!</div></div></div>'+
       '<div style="font-weight:800;font-size:15px;color:#111;margin-bottom:10px">Classement Beta &#128081;</div>'+
       '<div style="background:linear-gradient(135deg,#ef444415,#ec489910);border:2px solid #ef4444;border-radius:16px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'+
         '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:12px;flex-shrink:0">&#11088;</div>'+
@@ -722,7 +794,7 @@ function renderHome(){
 
   else if(tab==='culture'){
     var pd=ce('div',{style:{padding:'14px'}});
-    pd.innerHTML='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:9px"><div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF SAM</div><div style="color:#64748b;font-size:11px">To speak American you need to know American culture. Here are the essentials!</div></div></div>'+
+    pd.innerHTML='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:9px"><div style="font-size:22px">&#127897;</div><div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">PROF JESSICA</div><div style="color:#64748b;font-size:11px">To speak American you need to know American culture. Here are the essentials!</div></div></div>'+
       '<div style="font-weight:800;font-size:15px;color:#111;margin-bottom:10px">Culture Americaine &#127925;</div>';
     CULTURE.forEach(function(c){
       var card=ce('div',{style:{background:'#fff',border:'2px solid #f1f5f9',borderRadius:'18px',padding:'16px',marginBottom:'10px',boxShadow:'0 2px 7px rgba(0,0,0,0.04)'}});
@@ -758,21 +830,21 @@ function renderLMenu(){
       '<div style="display:flex;gap:11px;align-items:flex-start">'+
         '<div style="font-size:28px;flex-shrink:0">&#127897;</div>'+
         '<div style="flex:1">'+
-          '<div style="color:#ef4444;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:5px">PROF SAM</div>'+
+          '<div style="color:#ef4444;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:5px">PROF JESSICA</div>'+
           '<div style="color:#94a3b8;font-size:12px;line-height:1.6;font-style:italic">"'+lesson.sam+'"</div>'+
-          '<button id="samPlayBtn" style="margin-top:9px;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.25);border-radius:9px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer">&#128266; Ecouter Sam</button>'+
+          '<button id="samPlayBtn" style="margin-top:9px;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.25);border-radius:9px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer">&#128266; Ecouter Jessica</button>'+
         '</div>'+
       '</div>'+
     '</div>';
   var modes=[
-    {key:'learn',icon:'&#127917;',label:'Apprendre avec Sam',desc:'Decouvre les phrases avec contexte americain'},
-    {key:'mirror',icon:'&#127897;',label:'Repete apres Sam',desc:'Tu parles, Sam corrige ton accent',hot:true},
+    {key:'learn',icon:'&#127917;',label:'Apprendre avec Jessica',desc:'Decouvre les phrases avec contexte americain'},
+    {key:'mirror',icon:'&#127897;',label:'Repete apres Jessica',desc:'Tu parles, Jessica corrige ton accent',hot:true},
     {key:'exos',icon:'&#9999;',label:'Exercices',desc:'3 types: remplir, traduire, choix multiple',hot:true},
     {key:'quiz',icon:'&#127919;',label:'Quiz - Gagne tes XP',desc:'Valide la lecon et debloque la suivante'},
   ];
   var mlist=ce('div',{style:{display:'flex',flexDirection:'column',gap:'9px'}});
   modes.forEach(function(m){
-    var btn=ce('button',{style:{background:m.hot?lesson.color+'08':'#fff',border:m.hot?'2px solid '+lesson.color:'2px solid #e2e8f0',borderRadius:'14px',padding:'12px 14px',display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',textAlign:'left',width:'100%'},onclick:function(){S.screen=m.key;S.wiIdx=0;S.wiRev=false;S.mirPhase='ready';S.mirRes=null;S.mirAtt=0;S.mirPassed=[];S.exIdx=0;S.exInp='';S.exCho=null;S.exChk=false;S.qIdx=0;S.qScore=0;S.qCho=null;S.qDone=false;render();}});
+    var btn=ce('button',{style:{background:'#fff',border:'2px solid #e2e8f0',borderRadius:'14px',padding:'12px 14px',display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',textAlign:'left',width:'100%'},onclick:function(){S.screen=m.key;S.wiIdx=0;S.wiRev=false;S.mirPhase='ready';S.mirRes=null;S.mirAtt=0;S.mirPassed=[];S.exIdx=0;S.exInp='';S.exCho=null;S.exChk=false;S.qIdx=0;S.qScore=0;S.qCho=null;S.qDone=false;render();}});
     btn.innerHTML='<div style="width:40px;height:40px;border-radius:11px;background:'+lesson.color+'12;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">'+m.icon+'</div>'+
       '<div><div style="font-weight:800;font-size:13px;color:#111">'+m.label+'</div><div style="color:#94a3b8;font-size:10px;margin-top:1px">'+m.desc+'</div></div>'+
       '<div style="margin-left:auto;color:#e2e8f0">&#8594;</div>';
@@ -781,7 +853,7 @@ function renderLMenu(){
   d.appendChild(mlist);
   setTimeout(function(){
     var b=qs('samPlayBtn');
-    if(b)b.addEventListener('click',function(){speak(lesson.sam,0.88);b.textContent='&#128266; Reecouter Sam';});
+    if(b)b.addEventListener('click',function(){speak(lesson.sam,0.88);b.textContent='&#128266; Reecouter Jessica;});
     var bb=d.querySelector('button');
     if(bb)bb.addEventListener('click',function(){S.screen='home';render();});
   },50);
@@ -794,11 +866,7 @@ function renderLearn(){
   // Auto-speak when revealed
   if(S.wiRev && !S.wiSpoken){
     S.wiSpoken=true;
-    setTimeout(function(){
-      var c=0;
-      var nx=function(){c++;speak(w.en,u.level.speed,function(){if(c<u.level.reps)setTimeout(nx,500);});};
-      nx();
-    },300);
+    setTimeout(function(){speak(w.en,u.level.speed);},300);
   }
   var d=ce('div',{style:{padding:'22px 14px',background:'#f8fafc',minHeight:'100vh'}});
   d.innerHTML='<button onclick="S.screen=\'lmenu\';S.wiRev=false;S.wiSpoken=false;render();" style="background:none;border:none;color:#94a3b8;font-size:14px;cursor:pointer;padding:0;margin-bottom:4px">&#8592; Retour</button>';
@@ -807,16 +875,16 @@ function renderLearn(){
       '<div style="font-size:10px;color:#cbd5e1;margin-bottom:3px;font-weight:700;letter-spacing:1px">FRANCAIS</div>'+
       '<div style="font-size:20px;font-weight:900;color:#111;margin-bottom:14px">'+w.fr+'</div>'+
       (!S.wiRev?
-        '<button id="revBtn" style="width:100%;background:linear-gradient(135deg,#ef444415,#ec489910);border:1.5px solid #ef4444;border-radius:11px;padding:13px;font-size:13px;color:#ef4444;cursor:pointer;font-weight:700">&#127897; Sam me dit la traduction &#8594;</button>':
+        '<button id="revBtn" style="width:100%;background:linear-gradient(135deg,#ef444415,#ec489910);border:1.5px solid #ef4444;border-radius:11px;padding:13px;font-size:13px;color:#ef4444;cursor:pointer;font-weight:700">&#127897; Jessica me dit la traduction &#8594;</button>':
         '<div>'+
-          '<div style="font-size:10px;color:#cbd5e1;margin-bottom:3px;font-weight:700;letter-spacing:1px">SAM DIT...</div>'+
+          '<div style="font-size:10px;color:#cbd5e1;margin-bottom:3px;font-weight:700;letter-spacing:1px">JESSICA DIT...</div>'+
           '<div style="font-size:22px;font-weight:900;color:#111;margin-bottom:3px">'+w.en+'</div>'+
           '<div style="font-size:14px;color:'+lesson.color+';margin-bottom:9px;font-style:italic">['+w.ph+']</div>'+
           '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:9px 11px;margin-bottom:11px">'+
-            '<div style="font-size:9px;color:#92400e;font-weight:700;margin-bottom:2px;letter-spacing:1px">SAM EXPLIQUE</div>'+
+            '<div style="font-size:9px;color:#92400e;font-weight:700;margin-bottom:2px;letter-spacing:1px">JESSICA EXPLIQUE</div>'+
             '<div style="font-size:11px;color:#78350f;line-height:1.5">'+w.tip+'</div>'+
           '</div>'+
-          '<button id="listenBtn" style="width:100%;background:#111;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:800;cursor:pointer">&#128266; Ecouter Sam x'+u.level.reps+'</button>'+
+          '<button id="listenBtn" style="width:100%;background:#111;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:800;cursor:pointer">&#128266; Ecouter Jessica x'+u.level.reps+'</button>'+
         '</div>'
       )+
     '</div>';
@@ -830,7 +898,7 @@ function renderLearn(){
     var l=qs('listenBtn');
     if(l)l.addEventListener('click',function(){
       window.speechSynthesis.cancel();
-      var c=0;var nx=function(){c++;speak(w.en,u.level.speed,function(){if(c<u.level.reps)setTimeout(nx,500);});};nx();
+      speak(w.en,u.level.speed);
     });
   },50);
   return d;
@@ -845,9 +913,9 @@ function renderMirror(){
   if(phase==='done'){
     d.innerHTML+='<div style="text-align:center;padding:30px 0">'+
       '<div style="font-size:66px">&#127897;</div>'+
-      '<div style="font-size:22px;font-weight:900;margin:10px 0">Sam est fier de toi!</div>'+
+      '<div style="font-size:22px;font-weight:900;margin:10px 0">Jessica est fieree de toi!</div>'+
       '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:16px;padding:14px 18px;max-width:290px;margin:0 auto 16px">'+
-        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF SAM</div>'+
+        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF JESSICA</div>'+
         '<div style="color:#94a3b8;font-size:12px;font-style:italic">'+S.mirPassed.length+'/'+lesson.words.length+' phrases reussies. '+u.name+', you are becoming a real American speaker!</div>'+
       '</div>'+
       '<button id="backBtn2" style="background:'+lesson.color+';color:#fff;border:none;border-radius:13px;padding:14px 30px;font-size:14px;font-weight:800;cursor:pointer">Retour &#127968;</button>'+
@@ -866,7 +934,7 @@ function renderMirror(){
   if(phase==='result'&&res){
     d.innerHTML+='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:12px;padding:11px 14px;margin-bottom:9px;display:flex;gap:9px">'+
       '<div style="font-size:20px">&#127897;</div>'+
-      '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">SAM DIT:</div>'+
+      '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">JESSICA DIT:</div>'+
       '<div style="color:'+(res==='ok'?'#10b981':'#f59e0b')+';font-size:12px;font-weight:700">'+(res==='ok'?rnd(WIN):rnd(TRY))+'</div>'+
       (S.mirTx?'<div style="color:#475569;font-size:10px;margin-top:1px">Tu as dit: "'+S.mirTx+'"</div>':'')+
       '</div></div>'+
@@ -883,12 +951,12 @@ function renderMirror(){
   } else if(phase==='listening'){
     d.innerHTML+='<div style="text-align:center;padding:18px;background:'+lesson.color+'10;border-radius:16px;border:2px solid '+lesson.color+';margin-bottom:11px">'+
       '<div style="font-size:32px;margin-bottom:5px">&#128066;</div>'+
-      '<div style="font-weight:800;font-size:14px;color:#111;margin-bottom:5px">Sam t\'ecoute...</div>'+
+      '<div style="font-weight:800;font-size:14px;color:#111;margin-bottom:5px">Jessica t\'ecoute...</div>'+
       '<div style="display:flex;justify-content:center;gap:4px">'+'<div style="width:4px;height:20px;background:'+lesson.color+';border-radius:99px;animation:bounce 0.7s 0s infinite alternate"></div>'.repeat(4)+'</div>'+
     '</div>';
   } else if(phase==='speaking'){
     d.innerHTML+='<div style="text-align:center;padding:14px;background:#f1f5f9;border-radius:14px;margin-bottom:11px">'+
-      '<div style="font-size:26px">&#128266;</div><div style="font-weight:700;font-size:12px;color:#111;margin-top:3px">Sam parle ('+u.level.reps+'x)...</div>'+
+      '<div style="font-size:26px">&#128266;</div><div style="font-weight:700;font-size:12px;color:#111;margin-top:3px">Jessica parle ('+u.level.reps+'x)...</div>'+
     '</div>';
   } else {
     if(S.mirAtt>0)d.innerHTML+='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:11px;padding:9px 13px;text-align:center;margin-bottom:10px;width:100%"><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">SAM:</div><div style="color:#94a3b8;font-size:11px;font-style:italic">Don\'t give up! Try: '+w.en+'</div></div>';
@@ -899,7 +967,7 @@ function renderMirror(){
     var lisBtn=ce('button',{style:{background:'none',border:'1.5px solid '+lesson.color,borderRadius:'10px',padding:'6px 16px',fontSize:'11px',color:lesson.color,cursor:'pointer',fontWeight:'700'},onclick:function(){
       S.mirPhase='speaking';render();
       setTimeout(function(){var c=0;var nx=function(){c++;speak(w.en,u.level.speed,function(){if(c<u.level.reps)setTimeout(nx,500);else{S.mirPhase='ready';render();}});};nx();},100);
-    }},'&#128266; Ecouter x'+u.level.reps);
+    }},'&#128266; Reecouter Jessica);
     micBtn.appendChild(lisBtn);
     d.appendChild(micBtn);
   }
@@ -941,7 +1009,7 @@ function renderExos(){
     d.innerHTML='<div style="font-size:58px">'+(pct===100?'&#127942;':pct>=80?'&#11088;':pct>=60?'&#128077;':'&#128170;')+'</div>'+
       '<div style="font-size:24px;font-weight:900">'+sc+'/'+lesson.ex.length+'</div>'+
       '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:16px;padding:14px 18px;max-width:290px;width:100%">'+
-        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF SAM</div>'+
+        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF JESSICA</div>'+
         '<div style="color:#94a3b8;font-size:12px;font-style:italic">'+(pct===100?'"PERFECT '+u.name+'! 100 percent! You are on fire!"':pct>=60?'"Well done '+u.name+'! Do the quiz to unlock the next lesson!"':'"Keep going '+u.name+'! Practice makes perfect!"')+'</div>'+
       '</div>'+
       '<button id="exDoneBtn" style="background:'+lesson.color+';color:#fff;border:none;border-radius:13px;padding:14px 30px;font-size:14px;font-weight:800;cursor:pointer">Retour &#127968;</button>';
@@ -993,7 +1061,7 @@ function renderExos(){
   if(S.exChk){
     d.innerHTML+='<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:12px;padding:11px 13px;margin-bottom:9px;display:flex;gap:9px">'+
       '<div style="font-size:18px">&#127897;</div>'+
-      '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">SAM CORRIGE:</div>'+
+      '<div><div style="color:#ef4444;font-size:9px;font-weight:700;margin-bottom:1px">JESSICA CORRIGE:</div>'+
       '<div style="color:'+(S.exCor?'#10b981':'#f59e0b')+';font-size:12px;font-weight:700">'+(S.exCor?'Perfect! Exactly right!':'La bonne reponse: "'+ex.a+'"')+'</div></div>'+
     '</div>';
     var nb=ce('button',{style:{width:'100%',background:S.exCor?'#10b981':lesson.color,color:'#fff',border:'none',borderRadius:'12px',padding:'13px',fontSize:'14px',fontWeight:'800',cursor:'pointer'},onclick:function(){
@@ -1025,7 +1093,7 @@ function renderQuiz(){
     d.innerHTML='<div style="font-size:60px">'+(pct===100?'&#127942;':pct>=80?'&#11088;':ok?'&#128077;':'&#128170;')+'</div>'+
       '<div style="font-size:24px;font-weight:900">'+S.qScore+'/'+lesson.words.length+'</div>'+
       '<div style="background:linear-gradient(135deg,#080810,#0f172a);border-radius:16px;padding:14px 18px;max-width:290px;width:100%">'+
-        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF SAM</div>'+
+        '<div style="color:#ef4444;font-size:10px;font-weight:700;margin-bottom:4px">PROF JESSICA</div>'+
         '<div style="color:#94a3b8;font-size:12px;font-style:italic">'+(pct===100?'"PERFECT '+u.name+'! LEGENDARY!"':ok?'"Well done '+u.name+'! Lesson '+lesson.id+' done! Next one unlocked!"':'"Keep going '+u.name+'! You need 60 percent to pass. I believe in you!"')+'</div>'+
       '</div>';
     if(ok){
@@ -1080,7 +1148,7 @@ function showXPPopup(xp){
     '<div style="font-size:52px">&#11088;</div>'+
     '<div style="font-size:32px;font-weight:900;color:#fff;margin:7px 0 3px">+'+xp+' XP</div>'+
     '<div style="color:#ef4444;font-size:13px;font-weight:700">Lecon validee!</div>'+
-    '<div style="color:#475569;font-size:11px;margin-top:3px;font-style:italic">Sam est fier de toi</div>'+
+    '<div style="color:#475569;font-size:11px;margin-top:3px;font-style:italic">Jessica est fieree de toi</div>'+
   '</div>';
   document.body.appendChild(pop);
   setTimeout(function(){document.body.removeChild(pop);},2500);
